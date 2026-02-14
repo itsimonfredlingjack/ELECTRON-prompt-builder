@@ -86,7 +86,7 @@ app.whenReady().then(() => {
           "script-src 'self'; " +
           "style-src 'self' 'unsafe-inline'; " +
           "img-src 'self' data:; " +
-          "connect-src 'self' http://localhost:11434"
+          "connect-src 'self' http://localhost:11434 http://127.0.0.1:11434"
         ]
       }
     })

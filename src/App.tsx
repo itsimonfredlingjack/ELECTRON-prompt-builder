@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { AppState } from '@/types'
-import { listModels, generateStream, getErrorMessage } from '@/lib/ollama'
+import { listModels, generateStream, getErrorMessage, resetConnection } from '@/lib/ollama'
 import { SYSTEM_PROMPTS } from '@/lib/prompts'
 import { TitleBar } from '@/components/TitleBar'
 import { Header } from '@/components/Header'
@@ -11,6 +11,7 @@ import { StatusRow } from '@/components/StatusRow'
 import { GenerateButton } from '@/components/GenerateButton'
 
 const DEFAULT_MODEL = 'gpt-oss'
+const RETRY_DELAYS = [1000, 2000, 4000, 5000]
 
 function App() {
   const [state, setState] = useState<AppState>({
@@ -28,16 +29,24 @@ function App() {
 
   const abortControllerRef = useRef<AbortController | null>(null)
   const isInitializing = useRef(false)
+  const retryCountRef = useRef(0)
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const loadModels = useCallback(async () => {
+  const loadModels = useCallback(async (isRetry = false) => {
     if (isInitializing.current) return
     isInitializing.current = true
+    
+    if (!isRetry) {
+      setOllamaConnected(null)
+      resetConnection()
+    }
     
     setState(prev => ({ ...prev, error: null }))
     
     try {
       const models = await listModels()
       setOllamaConnected(true)
+      retryCountRef.current = 0
       setState(prev => ({
         ...prev,
         models,
@@ -45,9 +54,18 @@ function App() {
       }))
     } catch (err) {
       setOllamaConnected(false)
+      
+      const delay = RETRY_DELAYS[Math.min(retryCountRef.current, RETRY_DELAYS.length - 1)]
+      retryCountRef.current++
+      
+      retryTimeoutRef.current = setTimeout(() => {
+        isInitializing.current = false
+        loadModels(true)
+      }, delay)
+      
       setState(prev => ({
         ...prev,
-        error: getErrorMessage(err),
+        error: `${getErrorMessage(err)} (retrying in ${delay/1000}s...)`,
         models: [],
         model: ''
       }))
@@ -58,6 +76,12 @@ function App() {
 
   useEffect(() => {
     loadModels()
+    
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+      }
+    }
   }, [loadModels])
 
   const handleGenerate = async () => {
@@ -121,6 +145,15 @@ function App() {
     }))
   }
 
+  const handleRefresh = () => {
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current)
+    }
+    retryCountRef.current = 0
+    isInitializing.current = false
+    loadModels()
+  }
+
   const canGenerate = state.inputText.trim().length > 0 && 
                       state.model && 
                       !state.isGenerating
@@ -135,8 +168,8 @@ function App() {
             models={state.models}
             model={state.model}
             setAppState={setState}
-            onRefresh={loadModels}
-            isLoading={false}
+            onRefresh={handleRefresh}
+            isLoading={ollamaConnected === null}
           />
           
           <div className="flex-1 overflow-y-auto space-y-5 mt-5 pr-1">

@@ -1,21 +1,43 @@
 import { OllamaModel, OllamaGenerateResponse } from '@/types'
 
-const OLLAMA_BASE_URL = 'http://localhost:11434'
+const CANDIDATE_URLS = ['http://127.0.0.1:11434', 'http://localhost:11434']
+
+let workingUrl: string | null = null
+
+async function probeUrls(): Promise<string> {
+  if (workingUrl) return workingUrl
+
+  for (const url of CANDIDATE_URLS) {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 2000)
+      
+      const response = await fetch(`${url}/api/tags`, {
+        signal: controller.signal
+      })
+      clearTimeout(timeoutId)
+      
+      if (response.ok) {
+        workingUrl = url
+        return url
+      }
+    } catch {
+      // Try next URL
+    }
+  }
+  
+  throw new Error('Ollama is not running. Please start Ollama and try again.')
+}
 
 export async function listModels(): Promise<string[]> {
-  try {
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`)
-    if (!response.ok) {
-      throw new Error(`Ollama returned ${response.status}`)
-    }
-    const data = await response.json()
-    return (data.models || []).map((m: OllamaModel) => m.name)
-  } catch (error) {
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Ollama is not running. Please start Ollama and try again.')
-    }
-    throw error
+  const baseUrl = await probeUrls()
+  
+  const response = await fetch(`${baseUrl}/api/tags`)
+  if (!response.ok) {
+    throw new Error(`Ollama returned ${response.status}`)
   }
+  const data = await response.json()
+  return (data.models || []).map((m: OllamaModel) => m.name)
 }
 
 export async function* generateStream(
@@ -24,7 +46,9 @@ export async function* generateStream(
   userInput: string,
   signal: AbortSignal
 ): AsyncGenerator<string, void, unknown> {
-  const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+  const baseUrl = workingUrl || await probeUrls()
+
+  const response = await fetch(`${baseUrl}/api/generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -91,4 +115,8 @@ export function getErrorMessage(error: unknown): string {
     return error.message
   }
   return 'An unexpected error occurred. Please try again.'
+}
+
+export function resetConnection(): void {
+  workingUrl = null
 }
