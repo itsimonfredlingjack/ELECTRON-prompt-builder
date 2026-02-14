@@ -1,0 +1,19 @@
+appId: com.local.aipromptbuilder
+productName: AI Prompt Builder
+copyright: Copyright © 2024
+
+directories:
+  output: release
+
+files:
+  - dist/**/*
+  - package.json
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  category: Utility
+  icon: build/icon.png
+  maintainer: "AI Prompt Builder <ai-prompt-builder@localhost>"
