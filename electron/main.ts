@@ -14,11 +14,14 @@ let mainWindow: BrowserWindow | null = null
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 840,
-    height: 800,
-    minWidth: 700,
-    minHeight: 650,
+    width: 1100,
+    height: 850,
+    minWidth: 900,
+    minHeight: 700,
     frame: false,
+    resizable: true,
+    maximizable: true,
+    fullscreenable: true,
     backgroundColor: '#070A14',
     autoHideMenuBar: true,
     webPreferences: {
@@ -32,6 +35,14 @@ function createWindow() {
   })
 
   Menu.setApplicationMenu(null)
+
+  mainWindow.on('maximize', () => {
+    mainWindow?.webContents.send('window:state-change', { isMaximized: true })
+  })
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow?.webContents.send('window:state-change', { isMaximized: false })
+  })
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show()
@@ -49,12 +60,16 @@ ipcMain.handle('window:minimize', () => {
   mainWindow?.minimize()
 })
 
-ipcMain.handle('window:maximize', () => {
+ipcMain.handle('window:toggleMaximize', () => {
   if (mainWindow?.isMaximized()) {
     mainWindow.unmaximize()
   } else {
     mainWindow?.maximize()
   }
+})
+
+ipcMain.handle('window:isMaximized', () => {
+  return mainWindow?.isMaximized() ?? false
 })
 
 ipcMain.handle('window:close', () => {

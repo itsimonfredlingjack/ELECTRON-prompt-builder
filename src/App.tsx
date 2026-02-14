@@ -23,6 +23,8 @@ function App() {
     isGenerating: false,
     error: null
   })
+  
+  const [ollamaConnected, setOllamaConnected] = useState<boolean | null>(null)
 
   const abortControllerRef = useRef<AbortController | null>(null)
   const isInitializing = useRef(false)
@@ -35,12 +37,14 @@ function App() {
     
     try {
       const models = await listModels()
+      setOllamaConnected(true)
       setState(prev => ({
         ...prev,
         models,
         model: models.includes(DEFAULT_MODEL) ? DEFAULT_MODEL : (models[0] || '')
       }))
     } catch (err) {
+      setOllamaConnected(false)
       setState(prev => ({
         ...prev,
         error: getErrorMessage(err),
@@ -122,8 +126,8 @@ function App() {
                       !state.isGenerating
 
   return (
-    <div className="h-dvh w-dvw overflow-hidden flex flex-col">
-      <TitleBar />
+    <div className="h-dvh w-dvw overflow-hidden flex flex-col" style={{ border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 0 60px rgba(0,0,0,0.4), inset 0 0 80px rgba(0,240,255,0.01)' }}>
+      <TitleBar ollamaConnected={ollamaConnected} />
       
       <div className="flex-1 flex items-center justify-center overflow-hidden p-4 md:p-5">
         <div className="glass w-full max-w-2xl max-h-full overflow-hidden flex flex-col p-5 md:p-6 shadow-glass-lg">
