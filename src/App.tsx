@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { AppState } from '@/types'
 import { listModels, generateStream, getErrorMessage } from '@/lib/ollama'
 import { SYSTEM_PROMPTS } from '@/lib/prompts'
+import { TitleBar } from '@/components/TitleBar'
 import { Header } from '@/components/Header'
 import { CategorySelect } from '@/components/CategorySelect'
 import { InputArea } from '@/components/InputArea'
@@ -121,46 +122,50 @@ function App() {
                       !state.isGenerating
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 md:p-8">
-      <div className="glass w-full max-w-2xl p-6 md:p-8 shadow-glass-lg">
-        <Header
-          models={state.models}
-          model={state.model}
-          setAppState={setState}
-          onRefresh={loadModels}
-          isLoading={false}
-        />
-        
-        <div className="space-y-6 mt-6">
-          <CategorySelect
-            category={state.category}
+    <div className="flex flex-col h-screen">
+      <TitleBar />
+      
+      <div className="flex-1 flex items-center justify-center p-6 md:p-8 overflow-auto">
+        <div className="glass w-full max-w-2xl p-6 md:p-8 shadow-glass-lg">
+          <Header
+            models={state.models}
+            model={state.model}
             setAppState={setState}
-            disabled={state.isGenerating}
+            onRefresh={loadModels}
+            isLoading={false}
           />
           
-          <InputArea
-            value={state.inputText}
-            setAppState={setState}
-            disabled={state.isGenerating}
-          />
-          
-          <GenerateButton
-            onClick={handleGenerate}
-            onStop={handleStop}
-            isStreaming={state.isStreaming}
-            disabled={!canGenerate}
-          />
-          
-          <StatusRow
-            isStreaming={state.isStreaming}
-            isGenerating={state.isGenerating && !state.isStreaming}
-            error={state.error}
-          />
-          
-          <OutputArea
-            value={state.outputText}
-            isStreaming={state.isStreaming}
-          />
+          <div className="space-y-6 mt-6">
+            <CategorySelect
+              category={state.category}
+              setAppState={setState}
+              disabled={state.isGenerating}
+            />
+            
+            <InputArea
+              value={state.inputText}
+              setAppState={setState}
+              disabled={state.isGenerating}
+            />
+            
+            <GenerateButton
+              onClick={handleGenerate}
+              onStop={handleStop}
+              isStreaming={state.isStreaming}
+              disabled={!canGenerate}
+            />
+            
+            <StatusRow
+              isStreaming={state.isStreaming}
+              isGenerating={state.isGenerating && !state.isStreaming}
+              error={state.error}
+            />
+            
+            <OutputArea
+              value={state.outputText}
+              isStreaming={state.isStreaming}
+            />
+          </div>
         </div>
       </div>
     </div>

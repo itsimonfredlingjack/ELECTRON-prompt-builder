@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session } from 'electron'
+import { app, BrowserWindow, session, ipcMain, Menu } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -10,12 +10,17 @@ if (process.argv.includes('--disable-gpu') || process.env.DISABLE_GPU) {
   app.disableHardwareAcceleration()
 }
 
+let mainWindow: BrowserWindow | null = null
+
 function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 800,
     height: 700,
     minWidth: 600,
     minHeight: 500,
+    frame: false,
+    backgroundColor: '#070A14',
+    autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -23,21 +28,38 @@ function createWindow() {
       sandbox: true
     },
     title: 'AI Prompt Builder',
-    backgroundColor: '#ffffff',
     show: false
   })
 
-  win.once('ready-to-show', () => {
-    win.show()
+  Menu.setApplicationMenu(null)
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show()
   })
 
   if (isDev) {
-    win.loadURL('http://localhost:5173')
-    win.webContents.openDevTools()
+    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.webContents.openDevTools()
   } else {
-    win.loadFile(path.join(__dirname, '../index.html'))
+    mainWindow.loadFile(path.join(__dirname, '../index.html'))
   }
 }
+
+ipcMain.handle('window:minimize', () => {
+  mainWindow?.minimize()
+})
+
+ipcMain.handle('window:maximize', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow?.maximize()
+  }
+})
+
+ipcMain.handle('window:close', () => {
+  mainWindow?.close()
+})
 
 app.whenReady().then(() => {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {

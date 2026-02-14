@@ -2,6 +2,9 @@
 
 interface ElectronAPI {
   clipboardWrite: (text: string) => void
+  windowMinimize: () => Promise<void>
+  windowMaximize: () => Promise<void>
+  windowClose: () => Promise<void>
 }
 
 declare global {
