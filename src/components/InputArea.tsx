@@ -16,7 +16,7 @@ export function InputArea({ value, setAppState, disabled }: InputAreaProps) {
           onChange={(e) => setAppState(prev => ({ ...prev, inputText: e.target.value }))}
           disabled={disabled}
           placeholder="Describe what you want in Swedish or English... e.g., 'jag vill ha en funktion som hämtar data från ett API'"
-          className="w-full h-40 px-4 py-3 text-sm text-ghost bg-glass-light border border-glass-border rounded-xl resize-none focus:outline-none focus:border-neon-cyan/50 focus:shadow-glow-cyan-sm placeholder:text-ghost-dim disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className="w-full h-32 px-4 py-3 text-sm text-ghost bg-glass-light border border-glass-border rounded-xl resize-none focus:outline-none focus:border-neon-cyan/50 focus:shadow-glow-cyan-sm placeholder:text-ghost-dim disabled:opacity-50 disabled:cursor-not-allowed transition-all overflow-y-auto"
         />
         {value.length > 0 && (
           <div className="absolute bottom-3 right-3 text-xs text-ghost-dim">

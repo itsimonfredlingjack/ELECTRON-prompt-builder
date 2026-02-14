@@ -57,7 +57,7 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
         )}
       </div>
       <div 
-        className={`w-full min-h-[200px] px-4 py-3 glass-panel ${
+        className={`w-full h-40 px-4 py-3 glass-panel overflow-y-auto ${
           isStreaming ? 'animate-glow-pulse' : ''
         }`}
       >

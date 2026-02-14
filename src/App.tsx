@@ -122,11 +122,11 @@ function App() {
                       !state.isGenerating
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="h-dvh w-dvw overflow-hidden flex flex-col">
       <TitleBar />
       
-      <div className="flex-1 flex items-center justify-center p-6 md:p-8 overflow-auto">
-        <div className="glass w-full max-w-2xl p-6 md:p-8 shadow-glass-lg">
+      <div className="flex-1 flex items-center justify-center overflow-hidden p-4 md:p-5">
+        <div className="glass w-full max-w-2xl max-h-full overflow-hidden flex flex-col p-5 md:p-6 shadow-glass-lg">
           <Header
             models={state.models}
             model={state.model}
@@ -135,7 +135,7 @@ function App() {
             isLoading={false}
           />
           
-          <div className="space-y-6 mt-6">
+          <div className="flex-1 overflow-y-auto space-y-5 mt-5 pr-1">
             <CategorySelect
               category={state.category}
               setAppState={setState}
