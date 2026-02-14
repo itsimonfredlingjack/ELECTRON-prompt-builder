@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { AppState, Category } from '@/types'
+import { AppState } from '@/types'
 import { listModels, generateStream, getErrorMessage } from '@/lib/ollama'
 import { SYSTEM_PROMPTS } from '@/lib/prompts'
 import { Header } from '@/components/Header'
@@ -121,17 +121,17 @@ function App() {
                       !state.isGenerating
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      <Header
-        models={state.models}
-        model={state.model}
-        setAppState={setState}
-        onRefresh={loadModels}
-        isLoading={false}
-      />
-      
-      <main className="flex-1 overflow-auto p-6">
-        <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen flex items-center justify-center p-6 md:p-8">
+      <div className="glass w-full max-w-2xl p-6 md:p-8 shadow-glass-lg">
+        <Header
+          models={state.models}
+          model={state.model}
+          setAppState={setState}
+          onRefresh={loadModels}
+          isLoading={false}
+        />
+        
+        <div className="space-y-6 mt-6">
           <CategorySelect
             category={state.category}
             setAppState={setState}
@@ -162,7 +162,7 @@ function App() {
             isStreaming={state.isStreaming}
           />
         </div>
-      </main>
+      </div>
     </div>
   )
 }

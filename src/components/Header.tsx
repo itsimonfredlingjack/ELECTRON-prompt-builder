@@ -10,38 +10,45 @@ interface HeaderProps {
 
 export function Header({ models, model, setAppState, onRefresh, isLoading }: HeaderProps) {
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200">
+    <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-magenta/20 border border-neon-cyan/30 flex items-center justify-center shadow-glow-cyan-sm">
+          <svg className="w-5 h-5 text-neon-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-gray-900">AI Prompt Builder</h1>
+        <h1 className="text-xl font-display font-semibold text-ghost tracking-wide">
+          AI Prompt Builder
+        </h1>
       </div>
       
-      <div className="flex items-center gap-2">
-        <select
-          value={model}
-          onChange={(e) => setAppState(prev => ({ ...prev, model: e.target.value }))}
-          className="px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-        >
-          {models.length === 0 && (
-            <option value="">No models found</option>
-          )}
-          {models.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <select
+            value={model}
+            onChange={(e) => setAppState(prev => ({ ...prev, model: e.target.value }))}
+            className="appearance-none pl-4 pr-10 py-2 text-sm font-medium text-ghost bg-glass-light border border-glass-border rounded-pill cursor-pointer focus:outline-none focus:border-neon-cyan/50 focus:shadow-glow-cyan-sm transition-all hover:bg-glass-hover"
+          >
+            {models.length === 0 && (
+              <option value="">No models</option>
+            )}
+            {models.map((m) => (
+              <option key={m} value={m} className="bg-void-light text-ghost">{m}</option>
+            ))}
+          </select>
+          <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ghost-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
         
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+          className="w-10 h-10 flex items-center justify-center text-ghost-muted hover:text-neon-cyan hover:bg-glass-hover rounded-full transition-all disabled:opacity-50"
           title="Refresh models"
         >
           <svg 
-            className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} 
+            className={`w-5 h-5 ${isLoading ? 'animate-spin text-neon-cyan' : ''}`} 
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -50,6 +57,6 @@ export function Header({ models, model, setAppState, onRefresh, isLoading }: Hea
           </svg>
         </button>
       </div>
-    </header>
+    </div>
   )
 }
