@@ -142,15 +142,15 @@ function App() {
   return (
     <div className="h-dvh w-dvw overflow-hidden flex flex-col bg-void">
       <TitleBar />
-      <div className="flex-1 flex items-center justify-center overflow-hidden p-6 md:p-10">
-        <div className="panel panel-glow w-full max-w-3xl max-h-full overflow-hidden flex flex-col p-6 md:p-9 relative rounded-md animate-fade-in">
+      <div className="flex-1 overflow-y-auto">
+        <div className="w-full max-w-3xl mx-auto px-4 py-5 md:px-6 md:py-6 flex flex-col min-h-0 animate-fade-in">
           {showSettings ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-ghost-bright">Settings</h2>
+                <h2 className="text-base font-semibold text-ghost tracking-tight">Settings</h2>
                 <button
                   onClick={() => setShowSettings(false)}
-                  className="p-2 text-ghost-muted hover:text-ghost rounded-md transition-all duration-200 active:scale-95"
+                  className="p-2 text-ghost-muted hover:text-ghost rounded-lg surface"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -162,7 +162,7 @@ function App() {
           ) : (
             <>
               <Header onOpenSettings={() => setShowSettings(true)} onRefresh={checkApiKey} />
-              <div className="flex-1 overflow-y-auto space-y-6 mt-6 pr-1 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+              <div className="flex flex-col space-y-4 mt-4 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
                 <CategorySelect />
                 <InputArea />
                 <GenerateButton

@@ -7,42 +7,31 @@ export default {
   theme: {
     extend: {
       colors: {
-        /* Soft Clay / Playful 3D palette */
         void: {
-          DEFAULT: '#FFF0F5',
-          light: '#FFE8F2',
-          border: '#E8D8E6',
-          'border-hover': '#DDBFD6',
-          'border-bright': '#D1AAC6',
-        },
-        accent: {
-          DEFAULT: '#B28DFF',
-          dim: '#9B76EA',
-          glow: 'rgba(178, 141, 255, 0.45)',
-        },
-        candy: {
-          mint: '#CFF6DC',
-          sky: '#CFE7FF',
-          butter: '#FFEFB3',
-          peach: '#FFD6C8',
-        },
-        signal: {
-          success: '#56C596',
-          warning: '#FFB66E',
-          error: '#F08AA6',
+          DEFAULT: '#FFFFFF',
+          light: '#F9FAFB',
+          border: '#E5E7EB',
         },
         ghost: {
-          DEFAULT: '#4C3D5E',
-          bright: '#3C2E4D',
-          muted: '#705D86',
-          dim: '#907FA3',
+          DEFAULT: '#111827',
+          bright: '#374151',
+          muted: '#6B7280',
+          dim: '#9CA3AF',
+        },
+        accent: {
+          DEFAULT: '#000000',
+          dim: '#333333',
+          glow: 'transparent',
+        },
+        signal: {
+          success: '#059669',
+          warning: '#D97706',
+          error: '#DC2626',
         },
       },
       fontFamily: {
-        sans: ['Nunito', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-        display: ['Fredoka', 'Nunito', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-        body: ['Nunito', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-        mono: ['Nunito', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['Menlo', 'Monaco', 'ui-monospace', 'monospace'],
       },
       fontSize: {
         xs: ['0.75rem', { lineHeight: '1.25' }],
@@ -51,30 +40,20 @@ export default {
         micro: ['0.6875rem', { lineHeight: '1.2' }],
       },
       boxShadow: {
-        'glow': '0 0 0 2px rgba(178, 141, 255, 0.24), 0 10px 24px rgba(178, 141, 255, 0.2)',
-        'glow-strong': '0 0 0 3px rgba(178, 141, 255, 0.34), 0 14px 30px rgba(178, 141, 255, 0.28)',
-        'line': 'inset 0 2px 4px rgba(255,255,255,0.55), inset 0 -3px 6px rgba(180,145,171,0.22), 0 12px 24px rgba(165,130,154,0.22)',
-        'clay-sm': 'inset 0 2px 4px rgba(255,255,255,0.55), inset 0 -2px 4px rgba(180,145,171,0.18), 0 8px 16px rgba(165,130,154,0.18)',
+        'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        'DEFAULT': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        'none': 'none',
       },
       transitionDuration: {
         '250': '250ms',
         '300': '300ms',
       },
-      transitionTimingFunction: {
-        'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
-        'out-smooth': 'cubic-bezier(0.33, 1, 0.68, 1)',
-      },
       animation: {
-        'glow-pulse': 'glow-pulse 2.5s ease-in-out infinite',
         'typing': 'typing-cursor 1s step-end infinite',
         'fade-in': 'fade-in 0.4s ease-out forwards',
         'fade-in-up': 'fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       },
       keyframes: {
-        'glow-pulse': {
-          '0%, 100%': { boxShadow: '0 0 0 2px rgba(178, 141, 255, 0.14), 0 8px 16px rgba(178, 141, 255, 0.12)' },
-          '50%': { boxShadow: '0 0 0 3px rgba(178, 141, 255, 0.28), 0 14px 28px rgba(178, 141, 255, 0.2)' },
-        },
         'typing-cursor': {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.4' },
@@ -89,12 +68,12 @@ export default {
         },
       },
       borderRadius: {
-        DEFAULT: '18px',
+        DEFAULT: '8px',
         none: '0',
-        sm: '16px',
-        md: '24px',
-        lg: '32px',
-        xl: '40px',
+        sm: '4px',
+        md: '6px',
+        lg: '8px',
+        xl: '12px',
         pill: '9999px',
       },
     },

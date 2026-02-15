@@ -1,4 +1,4 @@
-/* Soft Clay / Playful 3D theme */
+/* Professional / No-Nonsense theme */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,9 +16,8 @@
   }
 
   body {
-    @apply font-body text-sm;
-    background: #fff0f5;
-    color: #4c3d5e;
+    @apply font-sans text-sm;
+    color: #374151;
   }
 
   #root {
@@ -26,91 +25,67 @@
     z-index: 1;
   }
 
-  /* Placeholder text - readable but secondary */
   ::placeholder {
-    color: rgba(112, 93, 134, 0.65);
+    color: #9CA3AF;
   }
 }
 
 @layer components {
-  /* Clay cards: inflated, soft, tactile */
   .panel {
-    background: linear-gradient(160deg, #ffeef6 0%, #ffe5f1 100%);
-    border: 1px solid #e8d8e6;
-    @apply shadow-line rounded-lg;
-    @apply transition-all duration-300 ease-out-smooth;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    @apply rounded-xl shadow-sm;
+    @apply transition-colors duration-200;
   }
 
-  .panel:hover {
-    border-color: #ddbfd6;
-    transform: translateY(-1px);
+  .output-panel {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    @apply rounded-xl shadow-sm;
+    @apply transition-colors duration-200;
   }
 
-  /* Accent glow on active/focus */
-  .panel-glow:hover {
-    box-shadow: inset 0 2px 4px rgba(255,255,255,0.55), inset 0 -3px 6px rgba(180,145,171,0.22), 0 14px 26px rgba(165,130,154,0.24);
+  .output-panel:hover {
+    border-color: #D1D5DB;
   }
 
-  .panel-glow:focus-visible,
-  .panel-glow.active {
-    border-color: rgba(178, 141, 255, 0.65);
-    box-shadow: 0 0 0 3px rgba(178, 141, 255, 0.22), 0 14px 30px rgba(178, 141, 255, 0.24);
-  }
-
-  /* Clay buttons */
   .btn-primary {
-    @apply relative font-medium transition-all duration-250 ease-out-expo;
-    background: linear-gradient(165deg, #cfe7ff 0%, #cfe7ff 35%, #c6ddff 100%);
-    border: 1px solid #b7cbe6;
-    color: #4b3d5f;
-    box-shadow: inset 0 2px 3px rgba(255,255,255,0.65), inset 0 -2px 5px rgba(114,142,177,0.2), 0 8px 16px rgba(130,147,179,0.25);
+    background: #000000;
+    color: #FFFFFF;
+    border: 1px solid transparent;
+    @apply font-medium rounded-lg px-4 py-2;
+    @apply transition-colors duration-200;
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(165deg, #d9f0ff 0%, #cfe7ff 100%);
-    border-color: #a9bbd8;
-    transform: translateY(-1px);
-    box-shadow: inset 0 2px 3px rgba(255,255,255,0.68), inset 0 -2px 5px rgba(114,142,177,0.22), 0 12px 22px rgba(130,147,179,0.28);
+    background: #333333;
   }
 
   .btn-primary:active:not(:disabled) {
-    transform: translateY(0) scale(0.985);
+    background: #1f1f1f;
   }
 
   .btn-primary:disabled {
     @apply opacity-40 cursor-not-allowed;
   }
 
-  .output-panel {
-    background: linear-gradient(160deg, #fff0f7 0%, #ffe7f2 100%);
-    border: 1px solid #e8d8e6;
-    @apply shadow-line rounded-lg;
-    @apply transition-colors duration-300;
-  }
-
-  .clay-node {
-    @apply rounded-full shadow-clay-sm;
-    background: linear-gradient(165deg, #ffe4f2 0%, #ffd9ed 100%);
-    border: 1px solid #e3bdd4;
-  }
-
-  .clay-tube {
-    height: 10px;
-    border-radius: 9999px;
-    background: linear-gradient(90deg, #cfe7ff 0%, #cfe7ff 50%, #c6f0df 100%);
-    box-shadow: inset 0 2px 2px rgba(255,255,255,0.6), inset 0 -2px 3px rgba(132,150,174,0.2);
+  .surface {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    @apply rounded-lg;
   }
 }
 
 @layer utilities {
   .section-label {
-    @apply text-xs tracking-wide text-ghost;
+    @apply text-xs tracking-tight text-ghost-muted;
   }
 
   .typing-cursor::after {
     content: '│';
     @apply text-accent animate-typing;
   }
+
   .output-fade-edges {
     mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%);
@@ -118,8 +93,8 @@
 }
 
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -127,25 +102,24 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(112, 93, 134, 0.28);
-  border-radius: 2px;
+  background: #E5E7EB;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(112, 93, 134, 0.4);
+  background: #D1D5DB;
 }
 
 ::selection {
-  background: rgba(178, 141, 255, 0.35);
-  color: #3c2e4d;
+  background: rgba(0, 0, 0, 0.15);
+  color: #111827;
 }
 
 :focus-visible {
-  outline: 2px solid rgba(178, 141, 255, 0.55);
+  outline: 2px solid #000000;
   outline-offset: 2px;
 }
 
-/* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

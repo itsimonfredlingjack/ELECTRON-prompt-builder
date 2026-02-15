@@ -52,13 +52,13 @@ export function ApiKeySettings() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={apiKeyConfigured ? 'Enter new key to replace...' : 'sk-...'}
-          className="flex-1 px-4 py-2.5 text-xs font-mono text-ghost-bright bg-white/45 border border-void-border rounded-lg focus:outline-none focus:border-accent focus:shadow-glow placeholder:text-ghost-dim placeholder:font-sans transition-all duration-200 hover:border-void-border-bright shadow-clay-sm"
+          className="flex-1 px-3 py-2.5 text-xs font-mono text-ghost-bright bg-void border border-void-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent placeholder:text-ghost-dim placeholder:font-sans transition-colors duration-200"
           autoComplete="off"
         />
         <button
           type="button"
           onClick={() => setShowKey(!showKey)}
-          className="px-3 py-2.5 text-ghost hover:text-ghost-bright rounded-lg bg-white/40 border border-transparent hover:border-void-border-bright transition-all duration-200 active:scale-95 shadow-clay-sm"
+          className="px-3 py-2.5 text-ghost-muted hover:text-ghost rounded-lg surface"
           title={showKey ? 'Hide' : 'Show'}
         >
           {showKey ? (
@@ -83,7 +83,7 @@ export function ApiKeySettings() {
           <button
             onClick={handleClear}
             disabled={saving}
-            className="px-4 py-2.5 text-xs font-medium text-ghost-bright border border-signal-error/45 rounded-lg bg-candy-peach hover:border-signal-error/60 disabled:opacity-50 transition-all duration-200 active:scale-[0.98] shadow-clay-sm"
+            className="px-4 py-2.5 text-xs font-medium text-ghost-bright rounded-lg surface hover:border-signal-error/50 hover:bg-signal-error/5 disabled:opacity-50 transition-colors duration-200"
           >
             Clear
           </button>

@@ -12,32 +12,32 @@ export function Header({ onOpenSettings, onRefresh }: HeaderProps) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 clay-node flex items-center justify-center">
-          <svg className="w-4 h-4 text-ghost" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-10 h-10 flex items-center justify-center rounded-lg surface">
+          <svg className="w-4 h-4 text-ghost-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
-        <h1 className="text-sm font-display font-semibold text-ghost-bright tracking-wide">
+        <h1 className="text-sm font-semibold text-ghost tracking-tight">
           AI Prompt Builder
         </h1>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <div className="relative">
           <select
             value={state.model}
             onChange={(e) => setState((prev) => ({ ...prev, model: e.target.value }))}
-            className="appearance-none pl-3 pr-9 py-2 text-xs font-medium text-ghost-bright bg-white/45 border border-void-border rounded-lg cursor-pointer focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 focus:shadow-glow transition-all duration-200 hover:border-void-border-bright shadow-clay-sm"
+            className="appearance-none pl-3 pr-9 py-2 text-xs font-medium text-ghost-bright bg-void border border-void-border rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors duration-200"
           >
             {state.models.length === 0 && <option value="">No models</option>}
             {state.models.map((m) => (
-              <option key={m} value={m} className="bg-void-light text-ghost">
+              <option key={m} value={m} className="bg-void text-ghost-bright">
                 {m}
               </option>
             ))}
           </select>
           <svg
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ghost pointer-events-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ghost-muted pointer-events-none"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -48,7 +48,7 @@ export function Header({ onOpenSettings, onRefresh }: HeaderProps) {
 
         <button
           onClick={onOpenSettings}
-          className="w-9 h-9 flex items-center justify-center text-ghost hover:text-accent bg-white/40 hover:bg-white/60 rounded-lg transition-all duration-200 border border-transparent hover:border-void-border-bright active:scale-95 shadow-clay-sm"
+          className="w-9 h-9 flex items-center justify-center text-ghost-muted hover:text-ghost rounded-lg surface"
           title="Settings"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,7 +70,7 @@ export function Header({ onOpenSettings, onRefresh }: HeaderProps) {
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          className="w-9 h-9 flex items-center justify-center text-ghost hover:text-accent bg-white/40 hover:bg-white/60 rounded-lg transition-all duration-200 border border-transparent hover:border-void-border-bright active:scale-95 disabled:opacity-50 shadow-clay-sm"
+          className="w-9 h-9 flex items-center justify-center text-ghost-muted hover:text-ghost rounded-lg surface disabled:opacity-50"
           title="Verify connection"
         >
           <svg
