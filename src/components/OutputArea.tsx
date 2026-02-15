@@ -40,7 +40,7 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
           <button
             onClick={handleCopy}
             disabled={isStreaming}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
               copied
                 ? 'bg-void-light text-signal-success border-signal-success'
                 : 'bg-void text-ghost border-void-border hover:bg-void-light hover:border-ghost-muted'
@@ -65,7 +65,7 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
         )}
       </div>
       <div
-        className={`w-full h-40 rounded-md overflow-hidden flex flex-col transition-colors border ${
+        className={`w-full h-40 rounded-lg overflow-hidden flex flex-col transition-colors border ${
           isStreaming
             ? 'bg-void-light border-accent'
             : 'bg-void-light border-void-border'
