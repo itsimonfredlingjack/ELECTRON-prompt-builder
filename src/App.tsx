@@ -162,7 +162,7 @@ function App() {
           ) : (
             <>
               <Header onOpenSettings={() => setShowSettings(true)} onRefresh={checkApiKey} />
-              <div className="flex flex-col space-y-4 mt-4 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+              <div className="flex flex-col space-y-4 mt-4">
                 <CategorySelect />
                 <InputArea />
                 <GenerateButton
