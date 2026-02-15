@@ -1,8 +1,10 @@
-import { app, BrowserWindow, session, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, session, ipcMain, Menu, safeStorage } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import Store from 'electron-store'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const store = new Store<{ apiKeyEnc?: string }>()
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -22,7 +24,7 @@ function createWindow() {
     resizable: true,
     maximizable: true,
     fullscreenable: true,
-    backgroundColor: '#070A14',
+    backgroundColor: '#0c0e14',
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
@@ -76,6 +78,26 @@ ipcMain.handle('window:close', () => {
   mainWindow?.close()
 })
 
+ipcMain.handle('settings:getApiKey', async (): Promise<string> => {
+  const enc = store.get('apiKeyEnc')
+  if (!enc) return ''
+  try {
+    const buf = Buffer.from(enc, 'base64')
+    return safeStorage.decryptString(buf)
+  } catch {
+    return ''
+  }
+})
+
+ipcMain.handle('settings:setApiKey', async (_event, key: string): Promise<void> => {
+  if (!key?.trim()) {
+    store.delete('apiKeyEnc')
+    return
+  }
+  const buf = safeStorage.encryptString(key.trim())
+  store.set('apiKeyEnc', buf.toString('base64'))
+})
+
 app.whenReady().then(() => {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
@@ -85,8 +107,8 @@ app.whenReady().then(() => {
           "default-src 'self'; " +
           "script-src 'self'; " +
           "style-src 'self' 'unsafe-inline'; " +
-          "img-src 'self' data:; " +
-          "connect-src 'self' http://localhost:11434 http://127.0.0.1:11434"
+          "img-src 'self' data: https:; " +
+          "connect-src 'self' https://api.z.ai"
         ]
       }
     })

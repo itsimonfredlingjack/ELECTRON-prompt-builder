@@ -1,6 +1,7 @@
 appId: com.local.aipromptbuilder
 productName: AI Prompt Builder
-copyright: Copyright © 2024
+copyright: Copyright © 2025
+publish: null
 
 directories:
   output: release
@@ -9,11 +10,22 @@ files:
   - dist/**/*
   - package.json
 
-linux:
+mac:
   target:
-    - target: AppImage
-      arch:
-        - x64
-  category: Utility
-  icon: build/icon.png
-  maintainer: "AI Prompt Builder <ai-prompt-builder@localhost>"
+    - dmg
+  defaultArch: universal
+  category: public.app-category.developer-tools
+  # icon: build/icon.icns  # Add 512x512 PNG as build/icon.png for custom icon
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications

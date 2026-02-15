@@ -11,6 +11,8 @@ interface ElectronAPI {
   windowClose: () => Promise<void>
   windowIsMaximized: () => Promise<boolean>
   onWindowStateChange: (callback: (state: WindowState) => void) => () => void
+  getApiKey: () => Promise<string>
+  setApiKey: (key: string) => Promise<void>
 }
 
 declare global {

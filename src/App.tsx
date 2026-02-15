@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { AppState } from '@/types'
-import { listModels, generateStream, getErrorMessage, resetConnection } from '@/lib/ollama'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { useApp } from '@/contexts/AppContext'
+import { generateStream, getErrorMessage, checkConnection } from '@/lib/zai'
 import { SYSTEM_PROMPTS } from '@/lib/prompts'
 import { TitleBar } from '@/components/TitleBar'
 import { Header } from '@/components/Header'
@@ -9,200 +9,177 @@ import { InputArea } from '@/components/InputArea'
 import { OutputArea } from '@/components/OutputArea'
 import { StatusRow } from '@/components/StatusRow'
 import { GenerateButton } from '@/components/GenerateButton'
+import { ApiKeySettings } from '@/components/ApiKeySettings'
 
-const DEFAULT_MODEL = 'gpt-oss'
-const RETRY_DELAYS = [1000, 2000, 4000, 5000]
+const UPDATE_INTERVAL_MS = 50
 
 function App() {
-  const [state, setState] = useState<AppState>({
-    category: 'coding',
-    model: DEFAULT_MODEL,
-    models: [],
-    inputText: '',
-    outputText: '',
-    isStreaming: false,
-    isGenerating: false,
-    error: null
-  })
-  
-  const [ollamaConnected, setOllamaConnected] = useState<boolean | null>(null)
+  const {
+    state,
+    setState,
+    apiKey,
+    setZaiConnected,
+    zaiConnected,
+  } = useApp()
 
   const abortControllerRef = useRef<AbortController | null>(null)
-  const isInitializing = useRef(false)
-  const retryCountRef = useRef(0)
-  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const pendingOutputRef = useRef('')
+  const lastUpdateRef = useRef(0)
 
-  const loadModels = useCallback(async (isRetry = false) => {
-    if (isInitializing.current) return
-    isInitializing.current = true
-    
-    if (!isRetry) {
-      setOllamaConnected(null)
-      resetConnection()
+  const checkApiKey = useCallback(async () => {
+    if (!apiKey?.trim()) {
+      setZaiConnected(false)
+      return
     }
-    
-    setState(prev => ({ ...prev, error: null }))
-    
+    setZaiConnected(null)
     try {
-      const models = await listModels()
-      setOllamaConnected(true)
-      retryCountRef.current = 0
-      setState(prev => ({
-        ...prev,
-        models,
-        model: models.includes(DEFAULT_MODEL) ? DEFAULT_MODEL : (models[0] || '')
-      }))
-    } catch (err) {
-      setOllamaConnected(false)
-      
-      const delay = RETRY_DELAYS[Math.min(retryCountRef.current, RETRY_DELAYS.length - 1)]
-      retryCountRef.current++
-      
-      retryTimeoutRef.current = setTimeout(() => {
-        isInitializing.current = false
-        loadModels(true)
-      }, delay)
-      
-      setState(prev => ({
-        ...prev,
-        error: `${getErrorMessage(err)} (retrying in ${delay/1000}s...)`,
-        models: [],
-        model: ''
-      }))
-    } finally {
-      isInitializing.current = false
+      const ok = await checkConnection(apiKey)
+      setZaiConnected(ok)
+    } catch {
+      setZaiConnected(false)
     }
-  }, [])
+  }, [apiKey, setZaiConnected])
 
   useEffect(() => {
-    loadModels()
-    
-    return () => {
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current)
-      }
-    }
-  }, [loadModels])
+    checkApiKey()
+  }, [checkApiKey])
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     if (!state.inputText.trim() || !state.model) return
 
-    setState(prev => ({
+    if (!apiKey?.trim()) {
+      setState((prev) => ({
+        ...prev,
+        error: 'Configure your Z.AI API key in Settings (gear icon) to generate prompts.',
+      }))
+      return
+    }
+
+    setState((prev) => ({
       ...prev,
       isGenerating: true,
       isStreaming: false,
       error: null,
-      outputText: ''
+      outputText: '',
     }))
 
     abortControllerRef.current = new AbortController()
+    pendingOutputRef.current = ''
+    lastUpdateRef.current = 0
 
     try {
       const systemPrompt = SYSTEM_PROMPTS[state.category]
-      let fullOutput = ''
-
-      setState(prev => ({ ...prev, isStreaming: true }))
+      setState((prev) => ({ ...prev, isStreaming: true }))
 
       for await (const chunk of generateStream(
+        apiKey,
         state.model,
         systemPrompt,
         state.inputText,
         abortControllerRef.current.signal
       )) {
-        fullOutput += chunk
-        setState(prev => ({ ...prev, outputText: fullOutput }))
+        pendingOutputRef.current += chunk
+        const now = Date.now()
+        if (now - lastUpdateRef.current >= UPDATE_INTERVAL_MS) {
+          lastUpdateRef.current = now
+          setState((prev) => ({ ...prev, outputText: pendingOutputRef.current }))
+        }
       }
-
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
+        outputText: pendingOutputRef.current,
         isStreaming: false,
-        isGenerating: false
+        isGenerating: false,
       }))
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
+          outputText: pendingOutputRef.current,
           isStreaming: false,
-          isGenerating: false
+          isGenerating: false,
         }))
       } else {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           error: getErrorMessage(err),
           isStreaming: false,
-          isGenerating: false
+          isGenerating: false,
         }))
       }
     }
-  }
+  }, [state.inputText, state.model, state.category, apiKey, setState])
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     abortControllerRef.current?.abort()
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
+      outputText: pendingOutputRef.current,
       isStreaming: false,
-      isGenerating: false
+      isGenerating: false,
     }))
-  }
+  }, [setState])
 
-  const handleRefresh = () => {
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleStop()
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        handleGenerate()
+      }
     }
-    retryCountRef.current = 0
-    isInitializing.current = false
-    loadModels()
-  }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [handleGenerate, handleStop])
 
-  const canGenerate = state.inputText.trim().length > 0 && 
-                      state.model && 
-                      !state.isGenerating
+  const canGenerate =
+    state.inputText.trim().length > 0 &&
+    state.model &&
+    !state.isGenerating
+
+  const [showSettings, setShowSettings] = useState(false)
 
   return (
-    <div className="h-dvh w-dvw overflow-hidden flex flex-col" style={{ border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 0 60px rgba(0,0,0,0.4), inset 0 0 80px rgba(0,240,255,0.01)' }}>
-      <TitleBar ollamaConnected={ollamaConnected} />
-      
-      <div className="flex-1 flex items-center justify-center overflow-hidden p-4 md:p-5">
-        <div className="glass w-full max-w-2xl max-h-full overflow-hidden flex flex-col p-5 md:p-6 shadow-glass-lg">
-          <Header
-            models={state.models}
-            model={state.model}
-            setAppState={setState}
-            onRefresh={handleRefresh}
-            isLoading={ollamaConnected === null}
-          />
-          
-          <div className="flex-1 overflow-y-auto space-y-5 mt-5 pr-1">
-            <CategorySelect
-              category={state.category}
-              setAppState={setState}
-              disabled={state.isGenerating}
-            />
-            
-            <InputArea
-              value={state.inputText}
-              setAppState={setState}
-              disabled={state.isGenerating}
-            />
-            
-            <GenerateButton
-              onClick={handleGenerate}
-              onStop={handleStop}
-              isStreaming={state.isStreaming}
-              disabled={!canGenerate}
-            />
-            
-            <StatusRow
-              isStreaming={state.isStreaming}
-              isGenerating={state.isGenerating && !state.isStreaming}
-              error={state.error}
-            />
-            
-            <OutputArea
-              value={state.outputText}
-              isStreaming={state.isStreaming}
-            />
-          </div>
+    <div className="h-dvh w-dvw overflow-hidden flex flex-col bg-void">
+      <TitleBar />
+      <div className="flex-1 flex items-center justify-center overflow-hidden p-6 md:p-10">
+        <div className="panel panel-glow w-full max-w-3xl max-h-full overflow-hidden flex flex-col p-6 md:p-9 relative rounded-md animate-fade-in">
+          {showSettings ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-ghost-bright">Settings</h2>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="p-2 text-ghost-muted hover:text-ghost rounded-md transition-all duration-200 active:scale-95"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <ApiKeySettings />
+            </div>
+          ) : (
+            <>
+              <Header onOpenSettings={() => setShowSettings(true)} onRefresh={checkApiKey} />
+              <div className="flex-1 overflow-y-auto space-y-6 mt-6 pr-1 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+                <CategorySelect />
+                <InputArea />
+                <GenerateButton
+                  onClick={handleGenerate}
+                  onStop={handleStop}
+                  isStreaming={state.isStreaming}
+                  disabled={!canGenerate}
+                />
+                <StatusRow
+                  isStreaming={state.isStreaming}
+                  isGenerating={state.isGenerating && !state.isStreaming}
+                  error={state.error}
+                />
+                <OutputArea value={state.outputText} isStreaming={state.isStreaming} />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

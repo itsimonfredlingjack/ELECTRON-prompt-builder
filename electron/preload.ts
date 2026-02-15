@@ -16,5 +16,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
     ipcRenderer.on('window:state-change', handler)
     return () => ipcRenderer.removeListener('window:state-change', handler)
-  }
+  },
+
+  getApiKey: (): Promise<string> => ipcRenderer.invoke('settings:getApiKey'),
+  setApiKey: (key: string): Promise<void> => ipcRenderer.invoke('settings:setApiKey', key),
 })

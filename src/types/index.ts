@@ -1,25 +1,5 @@
 export type Category = 'coding' | 'analysis' | 'creative'
 
-export interface OllamaModel {
-  name: string
-  modified_at: string
-  size: number
-}
-
-export interface OllamaGenerateRequest {
-  model: string
-  prompt: string
-  system?: string
-  stream: boolean
-}
-
-export interface OllamaGenerateResponse {
-  model: string
-  created_at: string
-  response: string
-  done: boolean
-}
-
 export interface AppState {
   category: Category
   model: string
@@ -32,3 +12,13 @@ export interface AppState {
 }
 
 export type SetAppState = React.Dispatch<React.SetStateAction<AppState>>
+
+export interface AppContextValue {
+  state: AppState
+  setState: SetAppState
+  apiKey: string
+  setApiKey: (key: string) => void
+  apiKeyConfigured: boolean
+  zaiConnected: boolean | null
+  setZaiConnected: (v: boolean | null) => void
+}

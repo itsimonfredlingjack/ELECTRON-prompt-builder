@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 interface OutputAreaProps {
   value: string
@@ -7,10 +7,10 @@ interface OutputAreaProps {
 
 export function OutputArea({ value, isStreaming }: OutputAreaProps) {
   const [copied, setCopied] = useState(false)
+  const preRef = useRef<HTMLPreElement>(null)
 
   const handleCopy = async () => {
     if (!value) return
-    
     try {
       if (window.electronAPI?.clipboardWrite) {
         window.electronAPI.clipboardWrite(value)
@@ -24,18 +24,26 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
     }
   }
 
+  useEffect(() => {
+    if (isStreaming && preRef.current) {
+      preRef.current.scrollTop = preRef.current.scrollHeight
+    }
+  }, [value, isStreaming])
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-ghost-muted tracking-wide">Optimized prompt</label>
+        <label className="section-label">
+          Optimized prompt
+        </label>
         {value && (
           <button
             onClick={handleCopy}
             disabled={isStreaming}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 ${
               copied
-                ? 'bg-neon-green/10 text-neon-green border border-neon-green/40 shadow-glow-green'
-                : 'btn-neon rounded-lg'
+                ? 'text-ghost-bright border border-signal-success/45 bg-candy-mint shadow-clay-sm'
+                : 'btn-primary'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {copied ? (
@@ -56,20 +64,28 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
           </button>
         )}
       </div>
-      <div 
-        className={`w-full h-40 px-4 py-3 glass-panel overflow-y-auto ${
-          isStreaming ? 'animate-glow-pulse' : ''
+      <div
+        className={`output-panel w-full h-40 rounded-lg overflow-hidden flex flex-col transition-colors ${
+          isStreaming ? 'animate-glow-pulse border-accent/45' : 'border-void-border hover:border-void-border-bright'
         }`}
       >
-        {value ? (
-          <pre className={`whitespace-pre-wrap font-mono text-sm leading-relaxed ${
-            isStreaming ? 'typing-cursor' : ''
-          }`}>
-            <span className="text-neon-cyan/90">{value}</span>
-          </pre>
-        ) : (
-          <p className="text-ghost-dim italic text-sm">Your optimized prompt will appear here...</p>
-        )}
+        <div className="flex-1 overflow-y-auto output-fade-edges px-4 py-3 min-h-0">
+          {value ? (
+            <pre
+              ref={preRef}
+              className={`font-mono text-[12px] leading-[1.6] tracking-tight text-ghost-bright whitespace-pre-wrap break-words ${
+                isStreaming ? 'typing-cursor' : ''
+              }`}
+              style={{ fontVariantLigatures: 'none' }}
+            >
+              {value}
+            </pre>
+          ) : (
+            <p className="text-ghost-dim italic text-xs font-normal font-sans">
+              Your optimized prompt will appear here...
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )
