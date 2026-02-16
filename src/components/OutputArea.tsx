@@ -40,15 +40,14 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
           <button
             onClick={handleCopy}
             disabled={isStreaming}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
-              copied
+            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${copied
                 ? 'bg-void-light text-signal-success border-signal-success'
                 : 'bg-void text-ghost border-void-border hover:bg-void-light hover:border-ghost-muted'
-            }`}
+              }`}
           >
             {copied ? (
               <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 animate-bounce-short" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 Copied!
@@ -65,19 +64,17 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
         )}
       </div>
       <div
-        className={`w-full h-40 rounded-lg overflow-hidden flex flex-col transition-colors border ${
-          isStreaming
+        className={`w-full h-40 rounded-lg overflow-hidden flex flex-col transition-colors border shadow-inner ${isStreaming
             ? 'bg-void-light border-accent'
             : 'bg-void-light border-void-border'
-        }`}
+          }`}
       >
         <div className="flex-1 overflow-y-auto output-fade-edges px-4 py-3 min-h-0">
           {value ? (
             <pre
               ref={preRef}
-              className={`font-mono text-[12px] leading-[1.6] tracking-tight text-ghost-bright whitespace-pre-wrap break-words ${
-                isStreaming ? 'typing-cursor' : ''
-              }`}
+              className={`font-mono text-[13px] leading-[1.6] tracking-tight text-ghost-bright whitespace-pre-wrap break-words selection:bg-accent/10 ${isStreaming ? 'typing-cursor' : ''
+                }`}
               style={{ fontVariantLigatures: 'none' }}
             >
               {value}

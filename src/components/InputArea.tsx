@@ -12,7 +12,7 @@ export function InputArea() {
           onChange={(e) => setState((prev) => ({ ...prev, inputText: e.target.value }))}
           disabled={state.isGenerating}
           placeholder="Describe what you want in Swedish or English... e.g., 'jag vill ha en funktion som hämtar data från ett API'"
-          className="w-full h-28 px-3 py-2 text-sm font-sans text-ghost-bright bg-void border border-void-border rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent placeholder:text-ghost-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 overflow-y-auto shadow-sm"
+          className="w-full h-28 px-3 py-2 text-sm font-sans text-ghost-bright bg-void border border-void-border rounded-lg resize-none placeholder:text-ghost-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 overflow-y-auto shadow-sm focus-ring"
         />
         {state.inputText.length > 0 && (
           <div className="absolute bottom-2.5 right-3 text-xs text-ghost-dim">

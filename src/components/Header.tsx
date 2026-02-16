@@ -10,7 +10,7 @@ export function Header({ onOpenSettings, onRefresh }: HeaderProps) {
   const isLoading = zaiConnected === null
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="sticky top-0 z-50 glass-header -mx-6 px-6 py-4 mb-6 flex items-center justify-between transition-all duration-300">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 flex items-center justify-center rounded-lg surface">
           <svg className="w-4 h-4 text-ghost-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">

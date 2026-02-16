@@ -15,7 +15,7 @@ export default {
         ghost: {
           DEFAULT: '#111827',
           bright: '#374151',
-          muted: '#6B7280',
+          muted: '#4B5563', // Darkened from #6B7280 for better contrast
           dim: '#9CA3AF',
         },
         accent: {
@@ -52,8 +52,21 @@ export default {
         'typing': 'typing-cursor 1s step-end infinite',
         'fade-in': 'fade-in 0.4s ease-out forwards',
         'fade-in-up': 'fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'shimmer': 'shimmer 2s linear infinite',
+        'bounce-short': 'bounce-short 0.5s ease-in-out 1',
+      },
+      backgroundImage: {
+        'glass-gradient': 'linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.4))',
       },
       keyframes: {
+        'shimmer': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        'bounce-short': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-25%)' },
+        },
         'typing-cursor': {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.4' },
@@ -68,12 +81,12 @@ export default {
         },
       },
       borderRadius: {
-        DEFAULT: '8px',
+        DEFAULT: '12px', // Standardized to 12px for main containers
         none: '0',
-        sm: '4px',
-        md: '6px',
-        lg: '8px',
-        xl: '12px',
+        sm: '6px',       // Slightly larger small radius
+        md: '8px',
+        lg: '12px',      // Matches default
+        xl: '16px',      // Larger for outer shells
         pill: '9999px',
       },
     },

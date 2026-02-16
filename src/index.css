@@ -34,8 +34,8 @@
   .panel {
     background: #FFFFFF;
     border: 1px solid #E5E7EB;
-    @apply rounded-xl shadow-sm;
-    @apply transition-colors duration-200;
+    @apply rounded-xl shadow-sm; /* rounded-xl is now 16px or 12px based on config, ensures consistency */
+    @apply transition-all duration-200;
   }
 
   .output-panel {
@@ -54,7 +54,8 @@
     color: #FFFFFF;
     border: 1px solid transparent;
     @apply font-medium rounded-lg px-4 py-2;
-    @apply transition-colors duration-200;
+    @apply transition-all duration-200; /* changed to transition-all for transform */
+    @apply active:scale-95; /* Add tactile feedback */
   }
 
   .btn-primary:hover:not(:disabled) {
@@ -89,6 +90,17 @@
   .output-fade-edges {
     mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%);
+  }
+
+  .glass-header {
+    background-image: theme('backgroundImage.glass-gradient');
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+  }
+
+  .focus-ring {
+    @apply focus:outline-none focus:ring-4 focus:ring-ghost/10 focus:border-ghost transition-all duration-200;
   }
 }
 
