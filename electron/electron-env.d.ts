@@ -13,6 +13,8 @@ interface ElectronAPI {
   onWindowStateChange: (callback: (state: WindowState) => void) => () => void
   getApiKey: () => Promise<string>
   setApiKey: (key: string) => Promise<void>
+  openExternal: (url: string) => Promise<void>
+  trackEvent: (name: string, meta?: Record<string, string>) => Promise<void>
 }
 
 declare global {

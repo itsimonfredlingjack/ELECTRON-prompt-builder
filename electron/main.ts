@@ -1,10 +1,25 @@
-import { app, BrowserWindow, session, ipcMain, Menu, safeStorage } from 'electron'
+import { app, BrowserWindow, session, ipcMain, Menu, safeStorage, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import Store from 'electron-store'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const store = new Store<{ apiKeyEnc?: string }>()
+
+type AnalyticsMeta = Record<string, string>
+
+interface AnalyticsEvent {
+  name: string
+  ts: string
+  meta: AnalyticsMeta
+}
+
+interface AppStoreSchema {
+  apiKeyEnc?: string
+  analyticsEvents?: AnalyticsEvent[]
+  analyticsCounters?: Record<string, number>
+}
+
+const store = new Store<AppStoreSchema>()
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -29,7 +44,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       sandbox: true
     },
     title: 'AI Prompt Builder',
@@ -98,21 +113,63 @@ ipcMain.handle('settings:setApiKey', async (_event, key: string): Promise<void> 
   store.set('apiKeyEnc', buf.toString('base64'))
 })
 
-app.whenReady().then(() => {
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self'; " +
-          "script-src 'self'; " +
-          "style-src 'self' 'unsafe-inline'; " +
-          "img-src 'self' data: https:; " +
-          "connect-src 'self' https://api.z.ai"
-        ]
+ipcMain.handle('external:open', async (_event, url: string): Promise<void> => {
+  if (!url?.trim()) {
+    throw new Error('URL is required')
+  }
+
+  const parsed = new URL(url)
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new Error('Only HTTP(S) URLs are allowed')
+  }
+
+  await shell.openExternal(parsed.toString())
+})
+
+ipcMain.handle('analytics:track', async (_event, name: string, meta?: Record<string, string>): Promise<void> => {
+  if (!/^[a-z0-9_]{1,64}$/.test(name)) {
+    throw new Error('Invalid event name')
+  }
+
+  const cleanMeta: AnalyticsMeta = {}
+  if (meta) {
+    for (const [key, value] of Object.entries(meta)) {
+      if (/^[a-z0-9_]{1,32}$/.test(key) && typeof value === 'string') {
+        cleanMeta[key] = value.slice(0, 120)
       }
+    }
+  }
+
+  const previousEvents = store.get('analyticsEvents') ?? []
+  const nextEvent: AnalyticsEvent = {
+    name,
+    ts: new Date().toISOString(),
+    meta: cleanMeta,
+  }
+  store.set('analyticsEvents', [...previousEvents, nextEvent].slice(-200))
+
+  const counters = store.get('analyticsCounters') ?? {}
+  counters[name] = (counters[name] ?? 0) + 1
+  store.set('analyticsCounters', counters)
+})
+
+app.whenReady().then(() => {
+  if (!isDev) {
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "default-src 'self'; " +
+            "script-src 'self'; " +
+            "style-src 'self' 'unsafe-inline'; " +
+            "img-src 'self' data: https:; " +
+            "connect-src 'self' https://api.z.ai"
+          ]
+        }
+      })
     })
-  })
+  }
 
   createWindow()
 

@@ -19,7 +19,6 @@ function App() {
     setState,
     apiKey,
     setZaiConnected,
-    zaiConnected,
   } = useApp()
 
   const abortControllerRef = useRef<AbortController | null>(null)

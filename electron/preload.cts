@@ -1,4 +1,6 @@
-import { contextBridge, clipboard, ipcRenderer } from 'electron'
+import electron = require('electron')
+
+const { contextBridge, clipboard, ipcRenderer } = electron
 
 contextBridge.exposeInMainWorld('electronAPI', {
   clipboardWrite: (text: string) => {
@@ -11,7 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   windowIsMaximized: (): Promise<boolean> => ipcRenderer.invoke('window:isMaximized'),
   
   onWindowStateChange: (callback: (state: { isMaximized: boolean }) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, state: { isMaximized: boolean }) => {
+    const handler = (_event: unknown, state: { isMaximized: boolean }) => {
       callback(state)
     }
     ipcRenderer.on('window:state-change', handler)
@@ -20,4 +22,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getApiKey: (): Promise<string> => ipcRenderer.invoke('settings:getApiKey'),
   setApiKey: (key: string): Promise<void> => ipcRenderer.invoke('settings:setApiKey', key),
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke('external:open', url),
+  trackEvent: (name: string, meta?: Record<string, string>): Promise<void> =>
+    ipcRenderer.invoke('analytics:track', name, meta),
 })
