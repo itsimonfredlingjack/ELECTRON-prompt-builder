@@ -1,23 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-
-const APP_SHARE_URL = 'https://github.com/local/ai-prompt-builder'
-
-function compressText(text: string, maxLength: number): string {
-  const normalized = text.replace(/\s+/g, ' ').trim()
-  if (normalized.length <= maxLength) return normalized
-  return `${normalized.slice(0, maxLength - 1)}…`
-}
-
-function buildShareText(prompt: string): string {
-  const snippet = compressText(prompt, 170)
-  return [
-    'I just turned a rough idea into a production-ready AI prompt with AI Prompt Builder.',
-    '',
-    `"${snippet}"`,
-    '',
-    `Try it: ${APP_SHARE_URL}`,
-  ].join('\n')
-}
+import { useApp } from '@/contexts/AppContext'
+import { CATEGORY_LABELS } from '@/lib/prompts'
+import { DEFAULT_SHARE_URL, buildShareCardDataUrl, buildShareIntentText } from '@/lib/share'
 
 interface OutputAreaProps {
   value: string
@@ -25,9 +9,13 @@ interface OutputAreaProps {
 }
 
 export function OutputArea({ value, isStreaming }: OutputAreaProps) {
+  const { state } = useApp()
   const [copied, setCopied] = useState(false)
-  const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'copied'>('idle')
+  const [shareStatus, setShareStatus] = useState<'idle' | 'ready' | 'copied' | 'opened'>('idle')
   const preRef = useRef<HTMLPreElement>(null)
+  const selectedModel = state.modelCapabilities.find((model) => model.id === state.model)
+  const categoryLabel = CATEGORY_LABELS[state.category]
+  const modelLabel = selectedModel?.label ?? state.model
 
   const writeClipboard = async (text: string): Promise<boolean> => {
     try {
@@ -36,6 +24,21 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
       } else {
         await navigator.clipboard.writeText(text)
       }
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const writeClipboardImage = async (dataUrl: string): Promise<boolean> => {
+    try {
+      const response = await fetch(dataUrl)
+      const imageBlob = await response.blob()
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [imageBlob.type]: imageBlob,
+        }),
+      ])
       return true
     } catch {
       return false
@@ -53,11 +56,28 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
   const handleShare = async () => {
     if (!value || isStreaming) return
 
-    const shareText = buildShareText(value)
+    const shareText = buildShareIntentText({
+      inputText: state.inputText,
+      outputText: value,
+      shareUrl: DEFAULT_SHARE_URL,
+    })
+    const shareCardDataUrl = buildShareCardDataUrl({
+      inputText: state.inputText,
+      outputText: value,
+      categoryLabel,
+      modelLabel,
+      shareUrl: DEFAULT_SHARE_URL,
+    })
     const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`
 
-    await window.electronAPI?.trackEvent('share_clicked', { channel: 'x' })
-    const copiedToClipboard = await writeClipboard(shareText)
+    await window.electronAPI?.trackEvent('share_card_clicked', {
+      channel: 'x',
+      category: categoryLabel,
+    })
+
+    let copiedCard = false
+    copiedCard = await writeClipboardImage(shareCardDataUrl)
+
     let openedExternal = false
 
     try {
@@ -72,14 +92,16 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
       openedExternal = false
     }
 
-    await window.electronAPI?.trackEvent('share_completed', {
+    await window.electronAPI?.trackEvent('share_card_completed', {
       channel: 'x',
-      result: openedExternal ? 'opened' : copiedToClipboard ? 'copied' : 'failed',
+      result: openedExternal ? (copiedCard ? 'opened_with_card' : 'opened_only') : copiedCard ? 'copied_only' : 'failed',
     })
 
-    if (openedExternal) {
-      setShareStatus('shared')
-    } else if (copiedToClipboard) {
+    if (openedExternal && copiedCard) {
+      setShareStatus('ready')
+    } else if (openedExternal) {
+      setShareStatus('opened')
+    } else if (copiedCard) {
       setShareStatus('copied')
     } else {
       setShareStatus('idle')
@@ -110,19 +132,26 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
                   : 'bg-void text-ghost border-void-border hover:bg-void-light hover:border-ghost-muted'
               }`}
             >
-              {shareStatus === 'shared' ? (
+              {shareStatus === 'ready' ? (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17L17 7M17 7H9m8 0v8" />
                   </svg>
-                  Shared on X
+                  Card ready for X
                 </>
               ) : shareStatus === 'copied' ? (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Share copied
+                  Card copied
+                </>
+              ) : shareStatus === 'opened' ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17L17 7M17 7H9m8 0v8" />
+                  </svg>
+                  Opened on X
                 </>
               ) : (
                 <>
