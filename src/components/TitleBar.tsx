@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useApp } from '@/contexts/AppContext'
 
 export function TitleBar() {
-  const { zaiConnected } = useApp()
+  const { ollamaConnected } = useApp()
   const [isMaximized, setIsMaximized] = useState(false)
 
   useEffect(() => {
@@ -14,13 +14,13 @@ export function TitleBar() {
   }, [])
 
   const getStatusColor = () => {
-    if (zaiConnected === null) return 'bg-ghost-dim'
-    return zaiConnected ? 'bg-signal-success' : 'bg-signal-warning'
+    if (ollamaConnected === null) return 'bg-ghost-dim'
+    return ollamaConnected ? 'bg-signal-success' : 'bg-signal-warning'
   }
 
   const getStatusText = () => {
-    if (zaiConnected === null) return 'Checking...'
-    return zaiConnected ? 'Z.AI: Connected' : 'Z.AI: Configure API key'
+    if (ollamaConnected === null) return 'Checking local model...'
+    return ollamaConnected ? 'Ollama: Connected' : 'Ollama: Not reachable'
   }
 
   return (

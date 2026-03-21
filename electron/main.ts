@@ -1,33 +1,36 @@
-import { app, BrowserWindow, session, ipcMain, Menu, safeStorage, shell } from 'electron'
+import electron from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import Store from 'electron-store'
+import crypto from 'crypto'
+import type { BrowserWindow as BrowserWindowType } from 'electron'
+import type {
+  AiGenerationEvent,
+  ConnectionCheckRequest,
+  MultimodalGenerateRequest,
+  PreparedImage,
+  UploadCandidate,
+} from '../src/types/index.js'
+import { MODEL_CAPABILITIES } from './utils/modelCapabilities.js'
+import {
+  cleanupExpiredUploads,
+  clearAllPreparedImages,
+  clearPreparedImage,
+  ensureUploadDir,
+  prepareImageUpload,
+} from './services/imageUploadService.js'
+import { cancelGeneration, checkConnection, startGeneration } from './services/zaiService.js'
+
+const { app, BrowserWindow, clipboard, session, ipcMain, Menu, shell } = electron
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-type AnalyticsMeta = Record<string, string>
-
-interface AnalyticsEvent {
-  name: string
-  ts: string
-  meta: AnalyticsMeta
-}
-
-interface AppStoreSchema {
-  apiKeyEnc?: string
-  analyticsEvents?: AnalyticsEvent[]
-  analyticsCounters?: Record<string, number>
-}
-
-const store = new Store<AppStoreSchema>()
-
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
-
-if (process.argv.includes('--disable-gpu') || process.env.DISABLE_GPU) {
-  app.disableHardwareAcceleration()
-}
-
-let mainWindow: BrowserWindow | null = null
+const devServerHost = process.env.DEV_SERVER_HOST ?? '127.0.0.1'
+const parsedDevPort = Number.parseInt(process.env.DEV_SERVER_PORT ?? '5173', 10)
+const devServerPort = Number.isNaN(parsedDevPort) ? 5173 : parsedDevPort
+const devServerUrl = `http://${devServerHost}:${devServerPort}`
+let mainWindow: BrowserWindowType | null = null
+let isCleaningUpSessionUploads = false
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -45,10 +48,10 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.cjs'),
-      sandbox: true
+      sandbox: true,
     },
     title: 'AI Prompt Builder',
-    show: false
+    show: false,
   })
 
   Menu.setApplicationMenu(null)
@@ -66,11 +69,15 @@ function createWindow() {
   })
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.loadURL(devServerUrl)
     mainWindow.webContents.openDevTools()
   } else {
     mainWindow.loadFile(path.join(__dirname, '../index.html'))
   }
+}
+
+function emitGenerationEvent(event: AiGenerationEvent): void {
+  mainWindow?.webContents.send('ai:generation-event', event)
 }
 
 ipcMain.handle('window:minimize', () => {
@@ -85,32 +92,38 @@ ipcMain.handle('window:toggleMaximize', () => {
   }
 })
 
-ipcMain.handle('window:isMaximized', () => {
-  return mainWindow?.isMaximized() ?? false
-})
-
+ipcMain.handle('window:isMaximized', () => mainWindow?.isMaximized() ?? false)
 ipcMain.handle('window:close', () => {
   mainWindow?.close()
 })
 
-ipcMain.handle('settings:getApiKey', async (): Promise<string> => {
-  const enc = store.get('apiKeyEnc')
-  if (!enc) return ''
+ipcMain.handle('clipboard:write', async (_event, text: string): Promise<boolean> => {
+  if (!text) return false
   try {
-    const buf = Buffer.from(enc, 'base64')
-    return safeStorage.decryptString(buf)
+    clipboard.writeText(text)
+    return true
   } catch {
-    return ''
+    return false
   }
 })
 
-ipcMain.handle('settings:setApiKey', async (_event, key: string): Promise<void> => {
-  if (!key?.trim()) {
-    store.delete('apiKeyEnc')
-    return
-  }
-  const buf = safeStorage.encryptString(key.trim())
-  store.set('apiKeyEnc', buf.toString('base64'))
+ipcMain.handle('ai:getModelCapabilities', async () => MODEL_CAPABILITIES)
+ipcMain.handle('ai:checkConnection', async (_event, request: ConnectionCheckRequest) => checkConnection(request))
+ipcMain.handle('ai:prepareImageUpload', async (_event, file: UploadCandidate): Promise<PreparedImage> => {
+  return prepareImageUpload(file)
+})
+ipcMain.handle('ai:clearPreparedImage', async (_event, tempId: string): Promise<void> => {
+  await clearPreparedImage(tempId)
+})
+ipcMain.handle('ai:startGeneration', async (_event, request: MultimodalGenerateRequest): Promise<{ requestId: string }> => {
+  const requestId = crypto.randomUUID()
+  setTimeout(() => {
+    void startGeneration(requestId, request, emitGenerationEvent)
+  }, 0)
+  return { requestId }
+})
+ipcMain.handle('ai:cancelGeneration', async (_event, requestId: string): Promise<void> => {
+  cancelGeneration(requestId)
 })
 
 ipcMain.handle('external:open', async (_event, url: string): Promise<void> => {
@@ -126,34 +139,10 @@ ipcMain.handle('external:open', async (_event, url: string): Promise<void> => {
   await shell.openExternal(parsed.toString())
 })
 
-ipcMain.handle('analytics:track', async (_event, name: string, meta?: Record<string, string>): Promise<void> => {
-  if (!/^[a-z0-9_]{1,64}$/.test(name)) {
-    throw new Error('Invalid event name')
-  }
+app.whenReady().then(async () => {
+  await ensureUploadDir()
+  await cleanupExpiredUploads()
 
-  const cleanMeta: AnalyticsMeta = {}
-  if (meta) {
-    for (const [key, value] of Object.entries(meta)) {
-      if (/^[a-z0-9_]{1,32}$/.test(key) && typeof value === 'string') {
-        cleanMeta[key] = value.slice(0, 120)
-      }
-    }
-  }
-
-  const previousEvents = store.get('analyticsEvents') ?? []
-  const nextEvent: AnalyticsEvent = {
-    name,
-    ts: new Date().toISOString(),
-    meta: cleanMeta,
-  }
-  store.set('analyticsEvents', [...previousEvents, nextEvent].slice(-200))
-
-  const counters = store.get('analyticsCounters') ?? {}
-  counters[name] = (counters[name] ?? 0) + 1
-  store.set('analyticsCounters', counters)
-})
-
-app.whenReady().then(() => {
   if (!isDev) {
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
       callback({
@@ -161,12 +150,12 @@ app.whenReady().then(() => {
           ...details.responseHeaders,
           'Content-Security-Policy': [
             "default-src 'self'; " +
-            "script-src 'self'; " +
-            "style-src 'self' 'unsafe-inline'; " +
-            "img-src 'self' data: https:; " +
-            "connect-src 'self' https://api.z.ai"
-          ]
-        }
+              "script-src 'self'; " +
+              "style-src 'self' 'unsafe-inline'; " +
+              "img-src 'self' data: https:; " +
+              "connect-src 'self' http://127.0.0.1:11434",
+          ],
+        },
       })
     })
   }
@@ -177,6 +166,18 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
+  })
+})
+
+app.on('before-quit', (event) => {
+  if (isCleaningUpSessionUploads) {
+    return
+  }
+
+  isCleaningUpSessionUploads = true
+  event.preventDefault()
+  void clearAllPreparedImages().finally(() => {
+    app.quit()
   })
 })
 

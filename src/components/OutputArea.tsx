@@ -1,112 +1,38 @@
 import { useState, useRef, useEffect } from 'react'
-import { useApp } from '@/contexts/AppContext'
-import { CATEGORY_LABELS } from '@/lib/prompts'
-import { DEFAULT_SHARE_URL, buildShareCardDataUrl, buildShareIntentText } from '@/lib/share'
+import { writeClipboardText } from '@/lib/clipboard'
 
 interface OutputAreaProps {
   value: string
   isStreaming: boolean
+  onClear: () => void
 }
 
-export function OutputArea({ value, isStreaming }: OutputAreaProps) {
-  const { state } = useApp()
+export function OutputArea({ value, isStreaming, onClear }: OutputAreaProps) {
   const [copied, setCopied] = useState(false)
-  const [shareStatus, setShareStatus] = useState<'idle' | 'ready' | 'copied' | 'opened'>('idle')
+  const [cleared, setCleared] = useState(false)
   const preRef = useRef<HTMLPreElement>(null)
-  const selectedModel = state.modelCapabilities.find((model) => model.id === state.model)
-  const categoryLabel = CATEGORY_LABELS[state.category]
-  const modelLabel = selectedModel?.label ?? state.model
-
-  const writeClipboard = async (text: string): Promise<boolean> => {
-    try {
-      if (window.electronAPI?.clipboardWrite) {
-        window.electronAPI.clipboardWrite(text)
-      } else {
-        await navigator.clipboard.writeText(text)
-      }
-      return true
-    } catch {
-      return false
-    }
-  }
-
-  const writeClipboardImage = async (dataUrl: string): Promise<boolean> => {
-    try {
-      const response = await fetch(dataUrl)
-      const imageBlob = await response.blob()
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          [imageBlob.type]: imageBlob,
-        }),
-      ])
-      return true
-    } catch {
-      return false
-    }
-  }
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const clearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleCopy = async () => {
     if (!value) return
-    const ok = await writeClipboard(value)
+    const ok = await writeClipboardText(value, window.electronAPI, navigator.clipboard)
     if (!ok) return
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    if (copyTimeoutRef.current) {
+      clearTimeout(copyTimeoutRef.current)
+    }
+    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleShare = async () => {
-    if (!value || isStreaming) return
-
-    const shareText = buildShareIntentText({
-      inputText: state.inputText,
-      outputText: value,
-      shareUrl: DEFAULT_SHARE_URL,
-    })
-    const shareCardDataUrl = buildShareCardDataUrl({
-      inputText: state.inputText,
-      outputText: value,
-      categoryLabel,
-      modelLabel,
-      shareUrl: DEFAULT_SHARE_URL,
-    })
-    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`
-
-    await window.electronAPI?.trackEvent('share_card_clicked', {
-      channel: 'x',
-      category: categoryLabel,
-    })
-
-    let copiedCard = false
-    copiedCard = await writeClipboardImage(shareCardDataUrl)
-
-    let openedExternal = false
-
-    try {
-      if (window.electronAPI?.openExternal) {
-        await window.electronAPI.openExternal(shareUrl)
-        openedExternal = true
-      } else {
-        window.open(shareUrl, '_blank', 'noopener,noreferrer')
-        openedExternal = true
-      }
-    } catch {
-      openedExternal = false
+  const handleClear = () => {
+    if (!value) return
+    onClear()
+    setCleared(true)
+    if (clearTimeoutRef.current) {
+      clearTimeout(clearTimeoutRef.current)
     }
-
-    await window.electronAPI?.trackEvent('share_card_completed', {
-      channel: 'x',
-      result: openedExternal ? (copiedCard ? 'opened_with_card' : 'opened_only') : copiedCard ? 'copied_only' : 'failed',
-    })
-
-    if (openedExternal && copiedCard) {
-      setShareStatus('ready')
-    } else if (openedExternal) {
-      setShareStatus('opened')
-    } else if (copiedCard) {
-      setShareStatus('copied')
-    } else {
-      setShareStatus('idle')
-    }
-    setTimeout(() => setShareStatus('idle'), 2500)
+    clearTimeoutRef.current = setTimeout(() => setCleared(false), 1200)
   }
 
   useEffect(() => {
@@ -115,52 +41,41 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
     }
   }, [value, isStreaming])
 
+  useEffect(() => {
+    if (value) {
+      setCleared(false)
+    }
+  }, [value])
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+      }
+      if (clearTimeoutRef.current) {
+        clearTimeout(clearTimeoutRef.current)
+      }
+    }
+  }, [])
+
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+      <div className="sticky top-0 z-10 -mx-1 px-1 flex items-center justify-between bg-void/80 backdrop-blur-sm py-1 rounded-lg">
         <label className="section-label">
-          Optimized prompt
+          Clearer prompt
         </label>
         {value && (
           <div className="flex items-center gap-2">
             <button
-              onClick={handleShare}
+              onClick={handleClear}
               disabled={isStreaming}
-              className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
-                shareStatus !== 'idle'
-                  ? 'bg-void-light text-accent border-accent'
-                  : 'bg-void text-ghost border-void-border hover:bg-void-light hover:border-ghost-muted'
-              }`}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border bg-void-light text-ghost-muted border-void-border hover:text-ghost hover:bg-void transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Clear output"
             >
-              {shareStatus === 'ready' ? (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17L17 7M17 7H9m8 0v8" />
-                  </svg>
-                  Card ready for X
-                </>
-              ) : shareStatus === 'copied' ? (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Card copied
-                </>
-              ) : shareStatus === 'opened' ? (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17L17 7M17 7H9m8 0v8" />
-                  </svg>
-                  Opened on X
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17L17 7M17 7H9m8 0v8" />
-                  </svg>
-                  Share
-                </>
-              )}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18h12M9 6h6m-7 0h8l-1 12a2 2 0 01-2 2h-4a2 2 0 01-2-2L8 6z" />
+              </svg>
+              Clear
             </button>
             <button
               onClick={handleCopy}
@@ -191,7 +106,7 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
         )}
       </div>
       <div
-        className={`w-full h-56 md:h-72 rounded-lg overflow-hidden flex flex-col transition-colors border shadow-inner ${isStreaming
+        className={`w-full h-60 md:h-80 lg:h-[35rem] rounded-lg overflow-hidden flex flex-col transition-colors border shadow-inner ${isStreaming
             ? 'bg-void-light border-accent'
             : 'bg-void-light border-void-border'
           }`}
@@ -207,12 +122,23 @@ export function OutputArea({ value, isStreaming }: OutputAreaProps) {
               {value}
             </pre>
           ) : (
-            <p className="text-ghost-dim italic text-xs font-normal font-sans">
-              Your optimized prompt will appear here...
-            </p>
+            <>
+              {cleared ? (
+                <p className="text-signal-success text-xs font-medium font-sans animate-fade-in">
+                  Output cleared.
+                </p>
+              ) : (
+                <p className="text-ghost-dim italic text-xs font-normal font-sans">
+                  Your clearer, ready-to-copy prompt will appear here...
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
+      <p className="text-[10px] text-ghost-muted">
+        Prompt content stays in memory only. Nothing is exported unless you copy it.
+      </p>
     </div>
   )
 }

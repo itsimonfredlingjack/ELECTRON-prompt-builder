@@ -1,17 +1,7 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
-import type { AppState, AppContextValue } from '@/types'
-import { GLM_MODELS, DEFAULT_MODEL } from '@/lib/zai'
-
-const defaultState: AppState = {
-  category: 'coding',
-  model: DEFAULT_MODEL,
-  models: [...GLM_MODELS],
-  inputText: '',
-  outputText: '',
-  isStreaming: false,
-  isGenerating: false,
-  error: null,
-}
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import type { AppContextValue } from '@/types'
+import { defaultAppState } from '@/contexts/defaultState'
 
 const AppContext = createContext<AppContextValue | null>(null)
 
@@ -26,27 +16,27 @@ interface AppProviderProps {
 }
 
 export function AppProvider({ children }: AppProviderProps) {
-  const [state, setState] = useState<AppState>(defaultState)
-  const [apiKey, setApiKeyState] = useState<string>('')
-  const [zaiConnected, setZaiConnected] = useState<boolean | null>(null)
+  const [state, setState] = useState(defaultAppState)
+  const [ollamaConnected, setOllamaConnected] = useState<boolean | null>(null)
 
   useEffect(() => {
-    window.electronAPI?.getApiKey().then(setApiKeyState)
-  }, [])
-
-  const setApiKey = useCallback(async (key: string) => {
-    await window.electronAPI?.setApiKey(key)
-    setApiKeyState(key)
+    void window.electronAPI.getModelCapabilities().then((modelCapabilities) => {
+      setState((prev) => ({
+        ...prev,
+        modelCapabilities,
+        models: modelCapabilities.map((model) => model.id),
+        model: modelCapabilities.some((model) => model.id === prev.model)
+          ? prev.model
+          : modelCapabilities[0]?.id ?? prev.model,
+      }))
+    })
   }, [])
 
   const value: AppContextValue = {
     state,
     setState,
-    apiKey,
-    setApiKey,
-    apiKeyConfigured: !!apiKey?.trim(),
-    zaiConnected,
-    setZaiConnected,
+    ollamaConnected,
+    setOllamaConnected,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

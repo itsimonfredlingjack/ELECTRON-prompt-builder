@@ -1,143 +1,100 @@
-/**
- * Z.AI GLM API client - OpenAI-compatible chat completions with streaming.
- * @see https://docs.z.ai/api-reference/llm/chat-completion
- * @see https://docs.z.ai/guides/capabilities/streaming
- */
+import type { AppError, UploadErrorCode } from '@/types'
+import {
+  DEFAULT_MODEL,
+  getFirstVisionModel,
+  getModelCapability,
+  MAX_IMAGE_BYTES,
+  MODEL_CAPABILITIES,
+  supportsImages,
+} from '@/shared/models'
 
-const ZAI_API_BASE = 'https://api.z.ai/api/paas/v4'
+export const ACCEPTED_IMAGE_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+] as const
 
-export const GLM_MODELS = ['glm-4.5-flash', 'glm-4.7-flash'] as const
+export type AcceptedImageMimeType = (typeof ACCEPTED_IMAGE_MIME_TYPES)[number]
 
-export type GLMModel = (typeof GLM_MODELS)[number]
-
-export const DEFAULT_MODEL: GLMModel = 'glm-4.5-flash'
-
-export async function checkConnection(apiKey: string): Promise<boolean> {
-  if (!apiKey?.trim()) return false
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 8000)
-  try {
-    const res = await fetch(`${ZAI_API_BASE}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey.trim()}`,
-      },
-      body: JSON.stringify({
-        model: DEFAULT_MODEL,
-        messages: [{ role: 'user', content: 'Hi' }],
-        stream: false,
-        max_tokens: 2,
-      }),
-      signal: controller.signal,
-    })
-    clearTimeout(timeoutId)
-    if (res.status === 401) return false
-    return res.ok || res.status === 400 || res.status === 429
-  } catch {
-    clearTimeout(timeoutId)
-    return false
-  }
+const ERROR_MESSAGES: Record<UploadErrorCode, string> = {
+  FILE_TOO_LARGE: `Image exceeds the ${formatBytes(MAX_IMAGE_BYTES)} limit.`,
+  UNSUPPORTED_FILE_TYPE: 'Only JPG, PNG, WEBP, and GIF images are supported.',
+  MIME_MISMATCH: 'The selected file does not match its declared image type.',
+  UPLOAD_TIMEOUT: 'Image preparation timed out. Please try again.',
+  NETWORK_ERROR: 'Cannot connect to local Ollama. Make sure Ollama is running.',
+  MODEL_NOT_SUPPORTED: 'The selected model does not support image analysis.',
+  AI_PROVIDER_ERROR: 'The model could not process the request. Please try again.',
+  INVALID_UPLOAD: 'The selected file could not be prepared securely.',
+  UNKNOWN_ERROR: 'An unexpected error occurred. Please try again.',
 }
 
-export async function* generateStream(
-  apiKey: string,
-  model: string,
-  systemPrompt: string,
-  userInput: string,
-  signal: AbortSignal
-): AsyncGenerator<string, void, unknown> {
-  const key = apiKey?.trim()
-  if (!key) {
-    throw new Error('API key is required. Configure it in Settings.')
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  const units = ['KB', 'MB', 'GB']
+  let value = bytes / 1024
+  let unitIndex = 0
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
   }
 
-  const response = await fetch(`${ZAI_API_BASE}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userInput },
-      ],
-      stream: true,
-      temperature: 0.7,
-      max_tokens: 4096,
-    }),
-    signal,
-  })
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`
+}
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    const errObj = err as { error?: { code?: string; message?: string }; message?: string }
-    const msg = errObj?.error?.message || errObj?.message || response.statusText
-
-    if (response.status === 401) {
-      throw new Error('Invalid API key. Check your Z.AI API key in Settings.')
-    }
-    if (response.status === 429 || /insufficient balance|recharge|arrears|expired|quota/i.test(msg)) {
-      throw new Error(
-        `${msg}\n\n` +
-        '• Check balance: https://z.ai/manage-apikey/billing\n' +
-        '• Renew subscription: https://z.ai/subscribe'
-      )
-    }
-    throw new Error(msg || `Z.AI API returned ${response.status}`)
+export function validateSelectedImage(file: File, modelId: string): AppError | null {
+  if (!ACCEPTED_IMAGE_MIME_TYPES.includes(file.type as AcceptedImageMimeType)) {
+    return toAppError('UNSUPPORTED_FILE_TYPE')
   }
 
-  const reader = response.body?.getReader()
-  if (!reader) {
-    throw new Error('No response body from Z.AI')
+  if (file.size > MAX_IMAGE_BYTES) {
+    return toAppError('FILE_TOO_LARGE')
   }
 
-  const decoder = new TextDecoder()
-  let buffer = ''
+  if (!supportsImages(modelId)) {
+    return toAppError('MODEL_NOT_SUPPORTED')
+  }
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
+  return null
+}
 
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        const trimmed = line.trim()
-        if (!trimmed || trimmed === 'data: [DONE]') continue
-        if (!trimmed.startsWith('data: ')) continue
-
-        try {
-          const json = JSON.parse(trimmed.slice(6)) as {
-            choices?: Array<{ delta?: { content?: string } }>
-          }
-          const content = json.choices?.[0]?.delta?.content
-          if (content) {
-            yield content
-          }
-        } catch {
-          // Skip malformed SSE lines
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock()
+export function toAppError(code: UploadErrorCode, fallbackMessage?: string): AppError {
+  return {
+    code,
+    message: fallbackMessage?.trim() || ERROR_MESSAGES[code] || ERROR_MESSAGES.UNKNOWN_ERROR,
   }
 }
 
 export function getErrorMessage(error: unknown): string {
+  if (isAppError(error)) {
+    return error.message
+  }
+
   if (error instanceof Error) {
     if (error.name === 'AbortError') {
       return 'Generation stopped.'
     }
+
     if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
-      return 'Cannot connect to Z.AI. Check your network and API key.'
+      return 'Cannot connect to local Ollama. Make sure Ollama is running.'
     }
-    return error.message
+
+    return error.message || ERROR_MESSAGES.UNKNOWN_ERROR
   }
-  return 'An unexpected error occurred. Please try again.'
+
+  return ERROR_MESSAGES.UNKNOWN_ERROR
+}
+
+function isAppError(value: unknown): value is AppError {
+  return typeof value === 'object' && value !== null && 'code' in value && 'message' in value
+}
+
+export {
+  DEFAULT_MODEL,
+  getFirstVisionModel,
+  getModelCapability,
+  MAX_IMAGE_BYTES,
+  MODEL_CAPABILITIES,
+  supportsImages,
 }

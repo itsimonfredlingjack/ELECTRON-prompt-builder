@@ -1,25 +1,49 @@
+import { useMemo } from 'react'
 import { useApp } from '@/contexts/AppContext'
 
 interface HeaderProps {
-  onOpenSettings: () => void
   onRefresh: () => void
+  compact: boolean
 }
 
-export function Header({ onOpenSettings, onRefresh }: HeaderProps) {
-  const { state, setState, zaiConnected } = useApp()
-  const isLoading = zaiConnected === null
+export function Header({ onRefresh, compact }: HeaderProps) {
+  const { state, setState, ollamaConnected } = useApp()
+  const isLoading = ollamaConnected === null
+  const selectedModel = useMemo(
+    () => state.modelCapabilities.find((model) => model.id === state.model),
+    [state.modelCapabilities, state.model],
+  )
 
   return (
-    <div className="sticky top-0 z-50 glass-header -mx-6 px-6 py-4 mb-6 flex items-center justify-between transition-all duration-300">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 flex items-center justify-center rounded-lg surface">
+    <div
+      className={`sticky top-0 z-50 glass-header -mx-6 px-6 flex items-center justify-between transition-all duration-300 ${
+        compact ? 'py-2.5 mb-3' : 'py-4 mb-6'
+      }`}
+    >
+      <div className={`flex items-center transition-all duration-300 ${compact ? 'gap-2' : 'gap-3'}`}>
+        <div
+          className={`flex items-center justify-center rounded-lg surface transition-all duration-300 ${
+            compact ? 'w-8 h-8' : 'w-10 h-10'
+          }`}
+        >
           <svg className="w-4 h-4 text-ghost-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
-        <h1 className="text-sm font-semibold text-ghost tracking-tight">
-          AI Prompt Builder
-        </h1>
+        <div>
+          <h1 className={`font-semibold text-ghost tracking-tight transition-all duration-300 ${compact ? 'text-sm' : 'text-base'}`}>
+            AI Prompt Builder
+          </h1>
+          {selectedModel && (
+            <p
+              className={`text-[11px] text-ghost-muted transition-all duration-300 ${
+                compact ? 'opacity-0 max-h-0 overflow-hidden mt-0' : 'opacity-100 max-h-6 mt-1'
+              }`}
+            >
+              No prompt storage · Local Ollama · {selectedModel.supportsImages ? 'Images supported' : 'Text only'}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -27,12 +51,14 @@ export function Header({ onOpenSettings, onRefresh }: HeaderProps) {
           <select
             value={state.model}
             onChange={(e) => setState((prev) => ({ ...prev, model: e.target.value }))}
-            className="appearance-none pl-3 pr-9 py-2 text-xs font-medium text-ghost-bright bg-void border border-void-border rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-colors duration-200"
+            className={`appearance-none pl-3 pr-9 text-xs font-medium text-ghost-bright bg-void border border-void-border rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all duration-200 ${
+              compact ? 'py-1.5' : 'py-2'
+            }`}
           >
-            {state.models.length === 0 && <option value="">No models</option>}
-            {state.models.map((m) => (
-              <option key={m} value={m} className="bg-void text-ghost-bright">
-                {m}
+            {state.modelCapabilities.length === 0 && <option value="">No models</option>}
+            {state.modelCapabilities.map((model) => (
+              <option key={model.id} value={model.id} className="bg-void text-ghost-bright">
+                {model.label}
               </option>
             ))}
           </select>
@@ -47,38 +73,14 @@ export function Header({ onOpenSettings, onRefresh }: HeaderProps) {
         </div>
 
         <button
-          onClick={onOpenSettings}
-          className="w-9 h-9 flex items-center justify-center text-ghost-muted hover:text-ghost rounded-lg surface"
-          title="Settings"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-        </button>
-
-        <button
           onClick={onRefresh}
           disabled={isLoading}
-          className="w-9 h-9 flex items-center justify-center text-ghost-muted hover:text-ghost rounded-lg surface disabled:opacity-50"
+          className={`flex items-center justify-center text-ghost-muted hover:text-ghost rounded-lg surface disabled:opacity-50 transition-all duration-200 ${
+            compact ? 'w-8 h-8' : 'w-9 h-9'
+          }`}
           title="Verify connection"
         >
-          <svg
-            className={`w-5 h-5 ${isLoading ? 'animate-spin text-accent' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className={`w-5 h-5 ${isLoading ? 'animate-spin text-accent' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
