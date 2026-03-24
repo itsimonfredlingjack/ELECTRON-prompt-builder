@@ -104,6 +104,8 @@ export interface AppState {
   modelCapabilities: ModelCapability[]
   inputText: string
   outputText: string
+  lastGeneratedInputText: string
+  lastGeneratedCategory: Category
   isStreaming: boolean
   isGenerating: boolean
   error: string | null

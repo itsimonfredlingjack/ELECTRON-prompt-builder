@@ -149,6 +149,8 @@ function App() {
       isStreaming: false,
       error: null,
       outputText: '',
+      lastGeneratedInputText: state.inputText,
+      lastGeneratedCategory: state.category,
       uploadError: null,
       uploadStatus: state.imageAttachment ? 'analyzing' : 'idle',
       uploadProgress: state.imageAttachment ? 35 : 0,
@@ -271,7 +273,13 @@ function App() {
             </section>
 
             <section className="rounded-xl border border-void-border bg-void-light/60 p-4 md:p-5 shadow-sm lg:sticky lg:top-4 lg:self-start">
-              <OutputArea value={state.outputText} isStreaming={state.isStreaming} onClear={handleClearOutput} />
+              <OutputArea
+                value={state.outputText}
+                sourceValue={state.lastGeneratedInputText}
+                category={state.lastGeneratedCategory}
+                isStreaming={state.isStreaming}
+                onClear={handleClearOutput}
+              />
             </section>
           </div>
         </div>

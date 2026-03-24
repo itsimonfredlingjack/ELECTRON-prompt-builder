@@ -8,6 +8,8 @@ export const defaultAppState: AppState = {
   modelCapabilities: MODEL_CAPABILITIES,
   inputText: '',
   outputText: '',
+  lastGeneratedInputText: '',
+  lastGeneratedCategory: 'coding',
   isStreaming: false,
   isGenerating: false,
   error: null,

@@ -74,6 +74,14 @@ describe('SYSTEM_PROMPTS', () => {
     expect(SYSTEM_PROMPTS.creative).toContain('instagram caption for a coffee photo')
   })
 
+  it('forbids meta-prompt phrasing that tells the next model to ask another assistant', () => {
+    for (const prompt of Object.values(SYSTEM_PROMPTS)) {
+      expect(prompt).toContain('Write the improved prompt as the message that will be sent directly to the next AI')
+      expect(prompt).toContain('Do not wrap it in meta-instructions')
+      expect(prompt).toContain('Do not start with phrases like')
+    }
+  })
+
   it('places the shortest coding example before the medium debugging example', () => {
     expect(SYSTEM_PROMPTS.coding.indexOf('regex for email')).toBeLessThan(
       SYSTEM_PROMPTS.coding.indexOf('fix my python api that keeps crashing'),

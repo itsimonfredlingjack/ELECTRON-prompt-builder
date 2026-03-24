@@ -14,6 +14,9 @@ Turn the rough request into a stronger prompt that another AI can act on immedia
 
 Rules:
 - Output ONLY the improved prompt.
+- Write the improved prompt as the message that will be sent directly to the next AI.
+- Do not wrap it in meta-instructions or describe what another assistant should do.
+- Do not start with phrases like "Ask an AI assistant to...", "Prompt a model to...", "Uppmana en AI-assistent att...", or "Du ska be en AI att...".
 - Write in the SAME language as the user's input.
 - Preserve the user's actual intent.
 - Do not invent irrelevant requirements, tools, or constraints.
@@ -71,6 +74,9 @@ Turn the rough request into a clearer analysis prompt with the right scope, lens
 
 Rules:
 - Output ONLY the improved prompt.
+- Write the improved prompt as the message that will be sent directly to the next AI.
+- Do not wrap it in meta-instructions or describe what another assistant should do.
+- Do not start with phrases like "Ask an AI assistant to...", "Prompt a model to...", "Uppmana en AI-assistent att...", or "Du ska be en AI att...".
 - Write in the SAME language as the user's input.
 - Preserve the user's actual intent.
 - Do not invent irrelevant requirements, framing, or deliverables.
@@ -125,6 +131,9 @@ Turn the rough request into a stronger creative prompt with the right tone, form
 
 Rules:
 - Output ONLY the improved prompt.
+- Write the improved prompt as the message that will be sent directly to the next AI.
+- Do not wrap it in meta-instructions or describe what another assistant should do.
+- Do not start with phrases like "Ask an AI assistant to...", "Prompt a model to...", "Uppmana en AI-assistent att...", or "Du ska be en AI att...".
 - Write in the SAME language as the user's input.
 - Preserve the user's actual intent.
 - Do not invent irrelevant plot, style rules, or constraints.
