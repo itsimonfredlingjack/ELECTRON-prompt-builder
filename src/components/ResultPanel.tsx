@@ -30,22 +30,7 @@ export function ResultPanel() {
   const lineCount = useMemo(() => (
     draftText.trim() ? draftText.split(/\n/).length : 0
   ), [draftText])
-  const outputState = isStreaming
-    ? 'Streaming'
-    : showOfflineRecovery
-      ? 'Local recovery'
-      : hasDraft
-        ? 'Ready'
-        : error
-        ? 'Needs attention'
-        : 'Empty'
-  const runtimeLabel = !runtimeSnapshot?.daemonReachable
-    ? 'Ollama offline'
-    : selectedModelReady
-      ? selectedModelId ?? 'Model ready'
-      : selectedModelId
-        ? 'Model warming'
-        : 'No model selected'
+
   const provenanceMeta = useMemo(() => {
     if (!activeVersion) return null
 
@@ -59,6 +44,7 @@ export function ResultPanel() {
   }, [activeVersion, currentRequestMode, promptIntent, promptStrategy, promptTarget])
   const provenanceSource = activeVersion?.sourceValue || sourceValue
   const showDraftProvenance = hasDraft && !!activeVersion
+  const showEditor = hasOutput || isStreaming
 
   const handleCopy = async () => {
     if (!hasDraft) return
@@ -67,16 +53,18 @@ export function ResultPanel() {
     window.setTimeout(() => setCopyState('idle'), 1500)
   }
 
+  const runtimeMeta = selectedModelReady ? selectedModelId : selectedModelId ? 'model warming' : 'no model'
+
   return (
     <section className="draft" aria-label="Generated prompt draft">
       <header className="draft-head">
         <span className="draft-title">Prompt draft</span>
         {isStreaming ? (
-          <span className="badge badge--elec"><span className="dot dot--electric" />streaming</span>
+          <span className="badge badge--mint"><span className="dot" />streaming</span>
         ) : hasDraft ? (
-          <span className="badge badge--mint"><span className="dot" />draft sharpened</span>
+          <span className="badge badge--mint"><span className="dot" />sharpened</span>
         ) : showOfflineRecovery ? (
-          <span className="badge badge--quiet"><span className="dot dot--idle" />empty</span>
+          <span className="badge badge--err"><span className="dot dot--err" />offline</span>
         ) : error ? (
           <span className="badge badge--warn"><span className="dot dot--warn" />needs attention</span>
         ) : (
@@ -87,25 +75,17 @@ export function ResultPanel() {
           <div className="draft-stats">
             <div className="draft-stat"><span className="n">{wordCount}</span><span className="l">words</span></div>
             <div className="draft-stat"><span className="n">{lineCount}</span><span className="l">lines</span></div>
-            <div className="draft-stat"><span className="n">{hasDraft ? 'v1' : '-'}</span><span className="l">rev</span></div>
+            <div className="draft-stat"><span className="n">{hasDraft ? 'v1' : '—'}</span><span className="l">rev</span></div>
           </div>
         )}
       </header>
 
       {isStreaming && <div className="stream-track" />}
 
-      <div className="draft-body slim-scroll">
-        <div className={`ui-output-shell ${isStreaming ? 'is-streaming' : ''} ${showOfflineRecovery ? 'is-blocked' : ''}`}>
-          <div className="output-editor-bar">
-            <div>
-              <span className="output-state-label">{outputState}</span>
-              <p>{generationState} · {runtimeLabel}</p>
-            </div>
-            <span className="output-badge">
-              {isStreaming ? 'Waiting for first token' : hasDraft ? 'Prompt text' : showOfflineRecovery ? 'Blocked locally' : 'Ready for first draft'}
-            </span>
-          </div>
-
+      {showOfflineRecovery ? (
+        <OfflineRecovery />
+      ) : showEditor ? (
+        <div className="draft-body slim-scroll">
           {showDraftProvenance && (
             <div className="draft-provenance" aria-label="Draft provenance">
               <span className="draft-provenance-kicker">Loaded draft</span>
@@ -117,30 +97,25 @@ export function ResultPanel() {
               )}
             </div>
           )}
-
-          {showOfflineRecovery ? (
-            <>
-              <OfflineRecovery />
-              <DraftHint error={null} />
-            </>
-          ) : hasOutput || isStreaming ? (
-            <textarea
-              value={draftText}
-              onChange={(event) => setDraftText(event.target.value)}
-              className="ui-output-editor"
-              placeholder={isStreaming ? 'Waiting for the first local token...' : undefined}
-              spellCheck={false}
-            />
-          ) : (
-            <DraftHint error={error} />
-          )}
+          <textarea
+            value={draftText}
+            onChange={(event) => setDraftText(event.target.value)}
+            className="ui-output-editor"
+            placeholder={isStreaming ? 'Waiting for first token…' : undefined}
+            spellCheck={false}
+            aria-label="Prompt draft"
+          />
         </div>
-      </div>
+      ) : (
+        <DraftHint error={error} />
+      )}
 
       <footer className="draft-foot">
         <div className="draft-local">
           <span className={`dot ${selectedModelReady ? '' : 'dot--idle'}`} />
-          <span>{isOffline ? 'local only' : 'local · nothing sent'}</span>
+          <span>{isOffline ? 'local · offline' : `local · ${runtimeMeta}`}</span>
+          <span className="draft-local-sep">·</span>
+          <span>{generationState}</span>
         </div>
         <div className="draft-actions">
           <ActionButton onClick={() => void startGeneration()} disabled={isBusy || !canGenerate}>
@@ -150,11 +125,20 @@ export function ResultPanel() {
             Clear
           </ActionButton>
           <ActionButton onClick={() => void handleCopy()} disabled={!hasDraft || isStreaming} tone="primary">
-            {copyState === 'copied' ? 'Copied' : copyState === 'error' ? 'Retry Copy' : 'Copy'}
+            {copyState === 'copied' ? 'Copied' : copyState === 'error' ? 'Retry copy' : 'Copy'}
           </ActionButton>
         </div>
       </footer>
     </section>
+  )
+}
+
+function EmptyMark() {
+  return (
+    <svg className="empty-glyph" viewBox="0 0 200 200" fill="none" aria-hidden="true">
+      <path d="M60 50 L40 70 L40 130 L60 150" stroke="#485367" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M110 75 L145 100 L110 125" stroke="#6b7789" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
   )
 }
 
@@ -163,36 +147,41 @@ interface DraftHintProps {
 }
 
 function DraftHint({ error }: DraftHintProps) {
+  if (error) {
+    return (
+      <div className="empty is-error" role="alert">
+        <EmptyMark />
+        <div className="empty-title">Generation needs attention.</div>
+        <div className="empty-sub">{error}</div>
+      </div>
+    )
+  }
   return (
-    <div className={`editor-empty-hint ${error ? 'is-error' : ''}`}>
-      <span className="editor-empty-kicker">{error ? 'Runtime message' : 'Next step'}</span>
-      <p className="editor-empty-title">{error ? 'Generation needs attention.' : 'Draft is empty.'}</p>
-      <p className="editor-empty-copy">
-        {error ?? 'Write a brief on the left, then sharpen. Nothing leaves this machine.'}
-      </p>
-      {!error && (
-        <p className="editor-empty-command"><span>⌘↵</span> sharpen</p>
-      )}
+    <div className="empty">
+      <EmptyMark />
+      <div className="empty-title">Draft is empty.</div>
+      <div className="empty-sub">Write a brief on the left, then sharpen. Nothing leaves this machine.</div>
+      <div className="empty-row">
+        <span className="kbd kbd--mint">⌘</span>
+        <span className="kbd kbd--mint">↵</span>
+        <span>sharpen</span>
+      </div>
     </div>
   )
 }
 
 function OfflineRecovery() {
   return (
-    <div className="offline-recovery" role="status" aria-live="polite">
-      <div className="recovery-card">
-        <div className="recovery-copy">
-          <span className="editor-empty-kicker">Local runtime</span>
-          <h2>Start Ollama to draft locally.</h2>
-          <p>
-            Needs <code>127.0.0.1:11434</code>. Start the daemon, then use Retry beside Sharpen.
-          </p>
-        </div>
-        <div className="offline-command" aria-label="Command to start Ollama">
-          <span>$</span>
-          <code>ollama serve</code>
-        </div>
+    <div className="fullstate" role="status" aria-live="polite">
+      <svg className="fullstate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 17l6-6-6-6M12 19h8"/>
+      </svg>
+      <div className="fullstate-title">Ollama is not running.</div>
+      <div className="fullstate-sub">
+        Start Ollama to draft locally. Needs <code>127.0.0.1:11434</code>. Start the daemon, then use Retry beside Sharpen.
       </div>
+      <div className="fullstate-code"><span>$</span> ollama serve</div>
+      <div className="fullstate-note">no cloud fallback · by design</div>
     </div>
   )
 }

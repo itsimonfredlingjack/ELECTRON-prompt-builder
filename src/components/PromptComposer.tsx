@@ -110,7 +110,7 @@ export function PromptComposer() {
   return (
     <section className="comp" aria-label="Prompt brief">
       <header className="comp-head">
-        <span className="comp-title">Brief input</span>
+        <span className="comp-title">Brief</span>
         <button
           type="button"
           className="btn btn--ghost btn--sm"
@@ -376,11 +376,7 @@ export function PromptComposer() {
 
       <footer className="comp-foot">
         <div className="comp-foot-meta">
-          <span className="dropdown">{selectedModelLabel}</span>
-          <span className={`badge ${canGenerate ? 'badge--mint' : 'badge--quiet'}`}>
-            <span className={`dot ${isBusy ? 'dot--electric' : canGenerate ? '' : 'dot--idle'}`} />
-            {isBusy ? generationState : canGenerate ? 'ready to sharpen' : 'not ready'}
-          </span>
+          <span className="dropdown" title={selectedModelLabel}>{selectedModelLabel}</span>
         </div>
 
         {(error || notice) && (
@@ -388,30 +384,32 @@ export function PromptComposer() {
         )}
 
         <div className="comp-foot-actions">
-          {isRuntimeBlocked && (
+          {isRuntimeBlocked ? (
             <button
               type="button"
               onClick={() => void refreshRuntime()}
               disabled={runtimeRefreshing}
-              className="btn btn--ghost btn--sm"
+              className="btn btn--primary"
+              aria-label="Retry local runtime"
             >
-              {runtimeRefreshing ? 'Retrying' : 'Retry'}
+              {runtimeRefreshing ? 'Retrying' : 'Retry connection'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={isBusy ? cancelGeneration : () => void startGeneration()}
+              disabled={!isBusy && !canGenerate}
+              className="btn btn--primary"
+              aria-label="Build Prompt"
+            >
+              {isBusy ? `Stop ${generationState}` : 'Sharpen'}
+              {!isBusy && canGenerate && <span className="kbd kbd--dark">⌘↵</span>}
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={isBusy ? cancelGeneration : () => void startGeneration()}
-            disabled={!isBusy && !canGenerate}
-            className="btn btn--primary"
-            aria-label="Build Prompt"
-          >
-              {isBusy ? `Stop ${generationState}` : 'Sharpen'} {!isBusy && <span className="kbd kbd--dark">⌘↵</span>}
-          </button>
         </div>
 
         <p className={`ui-helper ${disabledReason ? 'is-visible' : ''}`}>
-          {disabledReason ?? 'Cmd/Ctrl + Enter builds from the current brief. Esc cancels.'}
+          {disabledReason ?? '⌘↵ sharpen · esc cancel'}
         </p>
       </footer>
     </section>

@@ -105,7 +105,7 @@ describe('PromptComposer', () => {
 
     const html = renderToStaticMarkup(<PromptComposer />)
 
-    expect(html).toContain('Brief input')
+    expect(html).toContain('Brief')
     expect(html).toContain('Raw intent')
     expect(html).toContain('Context')
     expect(html).toContain('Advanced')
