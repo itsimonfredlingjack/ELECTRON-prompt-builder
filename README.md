@@ -30,7 +30,7 @@ Then select a local model, write a rough prompt brief, and click `Build Prompt` 
 
 ## Scripts
 
-- `pnpm run electron:dev` - start Vite on `127.0.0.1:5173`, compile Electron in watch mode, and launch the desktop app
+- `pnpm run electron:dev` - start Vite on `127.0.0.1:5179`, compile Electron in watch mode, and launch the desktop app
 - `pnpm start` - alias for the combined desktop dev flow
 - `pnpm run dev` - run only the Vite renderer dev server
 - `pnpm test` - run Vitest once
