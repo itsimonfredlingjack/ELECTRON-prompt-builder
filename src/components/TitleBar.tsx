@@ -1,94 +1,106 @@
-import { useState, useEffect } from 'react'
-import { useApp } from '@/contexts/AppContext'
+import { type CSSProperties } from 'react'
+import { useRuntimeActions, useRuntimeState } from '@/contexts/runtimeContext'
 
 export function TitleBar() {
-  const { ollamaConnected } = useApp()
-  const [isMaximized, setIsMaximized] = useState(false)
+  const {
+    selectedModelId,
+    runtimeSnapshot,
+    runtimeRefreshing,
+    selectedModelReady,
+    selectedModelInstalled,
+  } = useRuntimeState()
+  const { selectModel, refreshRuntime } = useRuntimeActions()
 
-  useEffect(() => {
-    window.electronAPI?.windowIsMaximized().then(setIsMaximized)
-    const unsubscribe = window.electronAPI?.onWindowStateChange((state) => {
-      setIsMaximized(state.isMaximized)
-    })
-    return () => unsubscribe?.()
-  }, [])
-
-  const getStatusColor = () => {
-    if (ollamaConnected === null) return 'bg-ghost-dim'
-    return ollamaConnected ? 'bg-signal-success' : 'bg-signal-warning'
-  }
-
-  const getStatusText = () => {
-    if (ollamaConnected === null) return 'Checking local model...'
-    return ollamaConnected ? 'Ollama: Connected' : 'Ollama: Not reachable'
-  }
+  const models = runtimeSnapshot?.modelListAvailable ? runtimeSnapshot.models : []
+  const selectorValue = selectedModelId ?? models[0]?.id ?? ''
+  const statusTone = runtimeRefreshing
+    ? 'is-checking'
+    : !runtimeSnapshot?.daemonReachable
+      ? 'is-offline'
+      : selectedModelReady
+        ? 'is-ready'
+        : selectedModelInstalled
+          ? 'is-warming'
+          : 'is-idle'
+  const statusLabel = runtimeRefreshing
+    ? 'Checking runtime'
+    : !runtimeSnapshot?.daemonReachable
+      ? 'Ollama offline'
+      : selectedModelReady
+        ? 'Model ready'
+        : selectedModelInstalled
+          ? 'Model warming'
+          : 'Select model'
+  const modelCountLabel = models.length === 1 ? '1 model' : `${models.length} models`
+  const runtimeMeta = runtimeSnapshot?.modelListAvailable
+    ? modelCountLabel
+    : runtimeSnapshot?.daemonReachable
+      ? 'Model list unavailable'
+      : 'Local daemon unreachable'
+  const statusContext = runtimeRefreshing
+    ? 'REFRESHING'
+    : !runtimeSnapshot?.daemonReachable
+      ? 'OFFLINE'
+      : selectedModelReady
+      ? 'READY'
+      : selectedModelInstalled
+        ? 'WARMING'
+        : 'SELECT'
 
   return (
-    <div
-      className="flex items-center justify-between h-11 px-4 select-none bg-void border-b border-void-border"
-      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+    <header
+      className="app-header"
+      style={{ WebkitAppRegion: 'drag' } as CSSProperties}
       onDoubleClick={() => window.electronAPI?.windowToggleMaximize()}
     >
-      <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 flex items-center justify-center rounded-lg surface">
-          <svg className="w-4 h-4 text-ghost-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-        <span className="text-xs font-medium text-ghost tracking-tight">AI Prompt Builder</span>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg surface"
-          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-        >
-          <div className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
-          <span className="text-xs text-ghost-muted">{getStatusText()}</span>
-        </div>
-
-        <div
-          className="flex items-center gap-0.5"
-          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-        >
-          <button
-            onClick={() => window.electronAPI?.windowMinimize()}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-ghost-muted hover:text-ghost surface"
-            title="Minimize"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-            </svg>
-          </button>
-
-          <button
-            onClick={() => window.electronAPI?.windowToggleMaximize()}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-ghost-muted hover:text-ghost surface"
-            title={isMaximized ? 'Restore' : 'Maximize'}
-          >
-            {isMaximized ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <rect x="3" y="7" width="12" height="12" rx="2" strokeWidth={2} />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7V5a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2h-2" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <rect x="5" y="5" width="14" height="14" rx="2" strokeWidth={2} />
-              </svg>
-            )}
-          </button>
-
-          <button
-            onClick={() => window.electronAPI?.windowClose()}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-ghost-muted hover:text-signal-error surface hover:border-signal-error/50 hover:bg-signal-error/5"
-            title="Close"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+      <div className="brand-lockup min-w-0">
+        <span className="brand-glyph" aria-hidden="true" />
+        <div className="min-w-0">
+          <p className="brand-title">Prompt Builder</p>
+          <p className="brand-subtitle">LOCAL · OLLAMA · {runtimeMeta}</p>
         </div>
       </div>
-    </div>
+
+      <div className="header-context" aria-hidden="true">
+        <span>Builder</span>
+        <span>Prompt</span>
+        <span>Draft</span>
+      </div>
+
+      <div className="command-center" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+        <div className={`runtime-pill ${statusTone}`} aria-label={`Runtime status: ${statusLabel}`}>
+          <span className="runtime-dot" />
+          <span>{statusContext}</span>
+        </div>
+
+        <label className="sr-only" htmlFor="model-selector">Model selector</label>
+        <select
+          id="model-selector"
+          aria-label="Current local model"
+          value={selectorValue}
+          onChange={(event) => selectModel(event.target.value || null)}
+          disabled={runtimeRefreshing || models.length === 0}
+          className="ui-select"
+        >
+          {models.length === 0 ? (
+            <option value="">No local models</option>
+          ) : (
+            models.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.id}
+              </option>
+            ))
+          )}
+        </select>
+
+        <button
+          type="button"
+          onClick={() => void refreshRuntime()}
+          className="ui-action"
+        >
+          Refresh
+        </button>
+      </div>
+    </header>
   )
 }

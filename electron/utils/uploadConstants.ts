@@ -1,6 +1,4 @@
-import { MAX_IMAGE_BYTES } from '../../src/shared/models.js'
-
-export { MAX_IMAGE_BYTES }
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 export const UPLOAD_TTL_MS = 30 * 60 * 1000
 export const PREPARE_UPLOAD_TIMEOUT_MS = 15_000
 export const GENERATION_TIMEOUT_MS = 90_000

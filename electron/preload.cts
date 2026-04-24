@@ -2,10 +2,10 @@ import electron = require('electron')
 import type {
   AiGenerationEvent,
   AiGenerationStart,
-  ConnectionCheckRequest,
-  ModelCapability,
-  MultimodalGenerateRequest,
+  OllamaRuntimeSnapshot,
   PreparedImage,
+  RuntimeSnapshotRequest,
+  StartGenerationRequest,
   UploadCandidate,
 } from '../src/types/index'
 
@@ -26,11 +26,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('window:state-change', handler)
   },
 
-  getModelCapabilities: (): Promise<ModelCapability[]> => ipcRenderer.invoke('ai:getModelCapabilities'),
-  checkConnection: (request: ConnectionCheckRequest): Promise<boolean> => ipcRenderer.invoke('ai:checkConnection', request),
+  getRuntimeSnapshot: (request: RuntimeSnapshotRequest): Promise<OllamaRuntimeSnapshot> =>
+    ipcRenderer.invoke('ai:getRuntimeSnapshot', request),
+  refreshRuntimeSnapshot: (request: RuntimeSnapshotRequest): Promise<OllamaRuntimeSnapshot> =>
+    ipcRenderer.invoke('ai:refreshRuntimeSnapshot', request),
   prepareImageUpload: (file: UploadCandidate): Promise<PreparedImage> => ipcRenderer.invoke('ai:prepareImageUpload', file),
   clearPreparedImage: (tempId: string): Promise<void> => ipcRenderer.invoke('ai:clearPreparedImage', tempId),
-  startGeneration: (request: MultimodalGenerateRequest): Promise<AiGenerationStart> =>
+  startGeneration: (request: StartGenerationRequest): Promise<AiGenerationStart> =>
     ipcRenderer.invoke('ai:startGeneration', request),
   cancelGeneration: (requestId: string): Promise<void> => ipcRenderer.invoke('ai:cancelGeneration', requestId),
   onGenerationEvent: (callback: (event: AiGenerationEvent) => void) => {

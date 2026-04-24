@@ -1,7 +1,20 @@
-export type Category = 'coding' | 'analysis' | 'creative'
-export type ModelProvider = 'ollama'
+export type Category = 'coding' | 'analysis' | 'creative' | 'general'
+export type PromptIntent = 'create' | 'analyze' | 'fix' | 'critique' | 'other'
+export type PromptTarget = 'code' | 'analysis' | 'creative' | 'general'
+export type PromptStrategy = 'balanced' | 'stricter' | 'structured' | 'system' | 'agentic'
+export type WorkspaceTab = 'prompt' | 'compare' | 'variants' | 'history'
+export type PromptVersionKind = 'initial' | 'variant' | 'refinement'
 
 export type UploadStatus = 'idle' | 'validating' | 'ready' | 'uploading' | 'analyzing' | 'error'
+export type VisionSupport = 'supported' | 'unsupported' | 'unknown'
+export type GenerationLifecycleState =
+  | 'idle'
+  | 'preparing'
+  | 'generating'
+  | 'cancelling'
+  | 'completed'
+  | 'cancelled'
+  | 'failed'
 
 export type UploadErrorCode =
   | 'FILE_TOO_LARGE'
@@ -14,23 +27,30 @@ export type UploadErrorCode =
   | 'INVALID_UPLOAD'
   | 'UNKNOWN_ERROR'
 
-export interface ModelCapability {
+export interface DiscoveredModel {
   id: string
-  label: string
-  provider: ModelProvider
-  supportsImages: boolean
-  maxImageBytes: number
 }
 
-export interface ConnectionCheckRequest {
-  model: string
+export interface OllamaRuntimeSnapshot {
+  daemonReachable: boolean
+  modelListAvailable: boolean
+  models: DiscoveredModel[]
+  selectedModelId: string | null
+  selectedModelInstalled: boolean
+  selectedModelReady: boolean
+  selectedModelVisionSupport: VisionSupport
+  notice: string | null
+}
+
+export interface RuntimeSnapshotRequest {
+  selectedModelId: string | null
 }
 
 export interface UploadCandidate {
   name: string
   type: string
   size: number
-  dataBase64: string
+  filePath: string
 }
 
 export interface PreparedImage {
@@ -62,16 +82,18 @@ export interface MultimodalGenerateRequest {
   imageTempId?: string
 }
 
+export interface StartGenerationRequest extends MultimodalGenerateRequest {
+  requestId: string
+}
+
 export interface AiGenerationStart {
   requestId: string
 }
 
-export interface AiGenerationProgressEvent {
+export interface AiGenerationStartedEvent {
   requestId: string
-  type: 'progress'
-  stage: UploadStatus
-  progress: number
-  message: string
+  type: 'started'
+  state: 'preparing' | 'generating'
 }
 
 export interface AiGenerationChunkEvent {
@@ -80,46 +102,63 @@ export interface AiGenerationChunkEvent {
   chunk: string
 }
 
-export interface AiGenerationCompleteEvent {
+export interface AiGenerationCompletedEvent {
   requestId: string
-  type: 'complete'
+  type: 'completed'
 }
 
-export interface AiGenerationErrorEvent {
+export interface AiGenerationCancelledEvent {
   requestId: string
-  type: 'error'
+  type: 'cancelled'
+}
+
+export interface AiGenerationFailedEvent {
+  requestId: string
+  type: 'failed'
   error: AppError
 }
 
-export type AiGenerationEvent =
-  | AiGenerationProgressEvent
-  | AiGenerationChunkEvent
-  | AiGenerationCompleteEvent
-  | AiGenerationErrorEvent
-
-export interface AppState {
+export interface PromptVersion {
+  id: string
+  title: string
+  promptText: string
+  sourceValue: string
+  briefText: string
+  contextText: string
+  mustInclude: string
+  mustAvoid: string
+  outputShape: string
+  referenceMaterial: string
+  extraConstraints: string[]
+  hasImageAttachment: boolean
   category: Category
-  model: string
-  models: string[]
-  modelCapabilities: ModelCapability[]
-  inputText: string
-  outputText: string
-  lastGeneratedInputText: string
-  lastGeneratedCategory: Category
-  isStreaming: boolean
-  isGenerating: boolean
-  error: string | null
-  imageAttachment: ImageAttachment | null
-  uploadProgress: number
-  uploadStatus: UploadStatus
-  uploadError: AppError | null
+  promptIntent: PromptIntent
+  promptTarget: PromptTarget
+  promptStrategy: PromptStrategy
+  kind: PromptVersionKind
+  parentVersionId: string | null
+  requestLabel: string | null
+  createdAt: string
+  saved: boolean
 }
 
-export type SetAppState = React.Dispatch<React.SetStateAction<AppState>>
-
-export interface AppContextValue {
-  state: AppState
-  setState: SetAppState
-  ollamaConnected: boolean | null
-  setOllamaConnected: (v: boolean | null) => void
+export interface PromptInsight {
+  id: string
+  label: string
+  detail: string
+  tone: 'neutral' | 'strong' | 'caution'
 }
+
+export interface PromptMissingDetail {
+  id: string
+  label: string
+  detail: string
+  severity: 'info' | 'warning'
+}
+
+export type AiGenerationEvent =
+  | AiGenerationStartedEvent
+  | AiGenerationChunkEvent
+  | AiGenerationCompletedEvent
+  | AiGenerationCancelledEvent
+  | AiGenerationFailedEvent

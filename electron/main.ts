@@ -1,16 +1,15 @@
 import electron from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import crypto from 'crypto'
 import type { BrowserWindow as BrowserWindowType } from 'electron'
 import type {
   AiGenerationEvent,
-  ConnectionCheckRequest,
-  MultimodalGenerateRequest,
+  AiGenerationStart,
   PreparedImage,
+  RuntimeSnapshotRequest,
+  StartGenerationRequest,
   UploadCandidate,
 } from '../src/types/index.js'
-import { MODEL_CAPABILITIES } from './utils/modelCapabilities.js'
 import {
   cleanupExpiredUploads,
   clearAllPreparedImages,
@@ -18,7 +17,8 @@ import {
   ensureUploadDir,
   prepareImageUpload,
 } from './services/imageUploadService.js'
-import { cancelGeneration, checkConnection, startGeneration } from './services/zaiService.js'
+import { cancelGeneration, startGeneration } from './services/ollamaGenerationService.js'
+import { getRuntimeSnapshot } from './services/ollamaRuntimeService.js'
 
 const { app, BrowserWindow, clipboard, session, ipcMain, Menu, shell } = electron
 
@@ -38,11 +38,12 @@ function createWindow() {
     height: 850,
     minWidth: 900,
     minHeight: 700,
-    frame: false,
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 14 },
     resizable: true,
     maximizable: true,
     fullscreenable: true,
-    backgroundColor: '#0c0e14',
+    backgroundColor: '#0D0D0F',
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
@@ -107,20 +108,19 @@ ipcMain.handle('clipboard:write', async (_event, text: string): Promise<boolean>
   }
 })
 
-ipcMain.handle('ai:getModelCapabilities', async () => MODEL_CAPABILITIES)
-ipcMain.handle('ai:checkConnection', async (_event, request: ConnectionCheckRequest) => checkConnection(request))
+ipcMain.handle('ai:getRuntimeSnapshot', async (_event, request: RuntimeSnapshotRequest) => getRuntimeSnapshot(request.selectedModelId))
+ipcMain.handle('ai:refreshRuntimeSnapshot', async (_event, request: RuntimeSnapshotRequest) =>
+  getRuntimeSnapshot(request.selectedModelId),
+)
 ipcMain.handle('ai:prepareImageUpload', async (_event, file: UploadCandidate): Promise<PreparedImage> => {
   return prepareImageUpload(file)
 })
 ipcMain.handle('ai:clearPreparedImage', async (_event, tempId: string): Promise<void> => {
   await clearPreparedImage(tempId)
 })
-ipcMain.handle('ai:startGeneration', async (_event, request: MultimodalGenerateRequest): Promise<{ requestId: string }> => {
-  const requestId = crypto.randomUUID()
-  setTimeout(() => {
-    void startGeneration(requestId, request, emitGenerationEvent)
-  }, 0)
-  return { requestId }
+ipcMain.handle('ai:startGeneration', async (_event, request: StartGenerationRequest): Promise<AiGenerationStart> => {
+  void startGeneration(request, emitGenerationEvent)
+  return { requestId: request.requestId }
 })
 ipcMain.handle('ai:cancelGeneration', async (_event, requestId: string): Promise<void> => {
   cancelGeneration(requestId)
@@ -151,7 +151,8 @@ app.whenReady().then(async () => {
           'Content-Security-Policy': [
             "default-src 'self'; " +
               "script-src 'self'; " +
-              "style-src 'self' 'unsafe-inline'; " +
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+              "font-src 'self' https://fonts.gstatic.com; " +
               "img-src 'self' data: https: blob:; " +
               "connect-src 'self' http://127.0.0.1:11434",
           ],

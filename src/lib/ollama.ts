@@ -1,12 +1,6 @@
-import type { AppError, UploadErrorCode } from '@/types'
-import {
-  DEFAULT_MODEL,
-  getFirstVisionModel,
-  getModelCapability,
-  MAX_IMAGE_BYTES,
-  MODEL_CAPABILITIES,
-  supportsImages,
-} from '@/shared/models'
+import type { AppError, OllamaRuntimeSnapshot, VisionSupport } from '@/types'
+
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 export const ACCEPTED_IMAGE_MIME_TYPES = [
   'image/jpeg',
@@ -17,7 +11,7 @@ export const ACCEPTED_IMAGE_MIME_TYPES = [
 
 export type AcceptedImageMimeType = (typeof ACCEPTED_IMAGE_MIME_TYPES)[number]
 
-const ERROR_MESSAGES: Record<UploadErrorCode, string> = {
+const ERROR_MESSAGES: Record<AppError['code'], string> = {
   FILE_TOO_LARGE: `Image exceeds the ${formatBytes(MAX_IMAGE_BYTES)} limit.`,
   UNSUPPORTED_FILE_TYPE: 'Only JPG, PNG, WEBP, and GIF images are supported.',
   MIME_MISMATCH: 'The selected file does not match its declared image type.',
@@ -43,7 +37,7 @@ export function formatBytes(bytes: number): string {
   return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`
 }
 
-export function validateSelectedImage(file: File, modelId: string): AppError | null {
+export function validateSelectedImage(file: File, visionSupport: VisionSupport): AppError | null {
   if (!ACCEPTED_IMAGE_MIME_TYPES.includes(file.type as AcceptedImageMimeType)) {
     return toAppError('UNSUPPORTED_FILE_TYPE')
   }
@@ -52,14 +46,17 @@ export function validateSelectedImage(file: File, modelId: string): AppError | n
     return toAppError('FILE_TOO_LARGE')
   }
 
-  if (!supportsImages(modelId)) {
-    return toAppError('MODEL_NOT_SUPPORTED')
+  if (visionSupport !== 'supported') {
+    return toAppError(
+      'MODEL_NOT_SUPPORTED',
+      'Image analysis is available only when the selected model explicitly reports vision support.',
+    )
   }
 
   return null
 }
 
-export function toAppError(code: UploadErrorCode, fallbackMessage?: string): AppError {
+export function toAppError(code: AppError['code'], fallbackMessage?: string): AppError {
   return {
     code,
     message: fallbackMessage?.trim() || ERROR_MESSAGES[code] || ERROR_MESSAGES.UNKNOWN_ERROR,
@@ -86,15 +83,14 @@ export function getErrorMessage(error: unknown): string {
   return ERROR_MESSAGES.UNKNOWN_ERROR
 }
 
-function isAppError(value: unknown): value is AppError {
-  return typeof value === 'object' && value !== null && 'code' in value && 'message' in value
+export function findRuntimeModel(snapshot: OllamaRuntimeSnapshot | null, modelId: string | null) {
+  if (!snapshot || !modelId) {
+    return null
+  }
+
+  return snapshot.models.find((model) => model.id === modelId) ?? null
 }
 
-export {
-  DEFAULT_MODEL,
-  getFirstVisionModel,
-  getModelCapability,
-  MAX_IMAGE_BYTES,
-  MODEL_CAPABILITIES,
-  supportsImages,
+function isAppError(value: unknown): value is AppError {
+  return typeof value === 'object' && value !== null && 'code' in value && 'message' in value
 }

@@ -52,7 +52,7 @@ export async function prepareImageUpload(candidate: UploadCandidate): Promise<Pr
   return withTimeout(async () => {
     await ensureUploadDir()
 
-    if (!candidate?.dataBase64 || !candidate.name || !candidate.type) {
+    if (!candidate?.filePath || !candidate.name || !candidate.type) {
       throw appError('INVALID_UPLOAD')
     }
 
@@ -61,14 +61,20 @@ export async function prepareImageUpload(candidate: UploadCandidate): Promise<Pr
       throw appError('UNSUPPORTED_FILE_TYPE')
     }
 
-    if (candidate.size > MAX_IMAGE_BYTES) {
+    const sourceFileStat = await fs.stat(candidate.filePath).catch(() => null)
+    if (!sourceFileStat || !sourceFileStat.isFile()) {
+      throw appError('INVALID_UPLOAD', 'The selected image could not be read from disk.')
+    }
+
+    if (sourceFileStat.size > MAX_IMAGE_BYTES) {
       throw appError('FILE_TOO_LARGE')
     }
 
-    const buffer = Buffer.from(candidate.dataBase64, 'base64')
-    if (buffer.length !== candidate.size) {
+    if (sourceFileStat.size !== candidate.size) {
       throw appError('INVALID_UPLOAD', 'The prepared image size did not match the selected file.')
     }
+
+    const buffer = await fs.readFile(candidate.filePath)
 
     const detectedMimeType = detectMimeType(buffer)
     if (!detectedMimeType) {

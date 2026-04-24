@@ -27,7 +27,12 @@ This project currently supports **only local Ollama**.
 
 - Removed surface: Z.AI provider and API key settings
 - Active provider type: `ollama`
-- Default bundled model capability: `qwen3.5:4b` (vision-enabled)
+- Installed model options are discovered from the local Ollama runtime (`/api/tags`)
+- Runtime status is shown explicitly:
+  - Ollama daemon reachable
+  - installed model list available
+  - selected model installed
+  - selected model runtime-ready
 
 ## Requirements
 
@@ -75,7 +80,6 @@ macOS packaging is configured through `electron-builder.yml` and `build/entitlem
 - `electron/` - main process, preload bridge, desktop integrations
 - `src/` - renderer app (React + TypeScript)
 - `src/types/` - shared contracts between renderer/main
-- `src/shared/` - shared model capabilities/constants
 
 ## Security Notes
 

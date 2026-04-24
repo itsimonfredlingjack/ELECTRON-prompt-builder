@@ -1,0 +1,5 @@
+[    1347ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:5199/node_modules/.vite/deps/chunk-A4PLE5AR.js?v=939f1dc0:21550
+[   64966ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:5199/node_modules/.vite/deps/chunk-A4PLE5AR.js?v=939f1dc0:21550
+[  106873ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:5199/node_modules/.vite/deps/chunk-A4PLE5AR.js?v=939f1dc0:21550
+[  133277ms] [LOG] [vite] server connection lost. Polling for restart... @ http://127.0.0.1:5199/@vite/client:559
+[  133278ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5199/:0

@@ -3,10 +3,10 @@
 import type {
   AiGenerationEvent,
   AiGenerationStart,
-  ConnectionCheckRequest,
-  ModelCapability,
-  MultimodalGenerateRequest,
+  OllamaRuntimeSnapshot,
   PreparedImage,
+  RuntimeSnapshotRequest,
+  StartGenerationRequest,
   UploadCandidate,
 } from '../src/types'
 
@@ -21,11 +21,11 @@ interface ElectronAPI {
   windowClose: () => Promise<void>
   windowIsMaximized: () => Promise<boolean>
   onWindowStateChange: (callback: (state: WindowState) => void) => () => void
-  getModelCapabilities: () => Promise<ModelCapability[]>
-  checkConnection: (request: ConnectionCheckRequest) => Promise<boolean>
+  getRuntimeSnapshot: (request: RuntimeSnapshotRequest) => Promise<OllamaRuntimeSnapshot>
+  refreshRuntimeSnapshot: (request: RuntimeSnapshotRequest) => Promise<OllamaRuntimeSnapshot>
   prepareImageUpload: (file: UploadCandidate) => Promise<PreparedImage>
   clearPreparedImage: (tempId: string) => Promise<void>
-  startGeneration: (request: MultimodalGenerateRequest) => Promise<AiGenerationStart>
+  startGeneration: (request: StartGenerationRequest) => Promise<AiGenerationStart>
   cancelGeneration: (requestId: string) => Promise<void>
   onGenerationEvent: (callback: (event: AiGenerationEvent) => void) => () => void
   openExternal: (url: string) => Promise<void>
