@@ -16,4 +16,12 @@ describe('Content Security Policy', () => {
     expect(mainProcessSource).toContain("\"img-src 'self' data: https: blob:; \" +")
     expect(mainProcessSource).toContain("\"connect-src 'self' http://127.0.0.1:11434\"")
   })
+
+  it('blocks renderer navigation away from the app shell', () => {
+    const mainProcessSource = fs.readFileSync(path.join(projectRoot, 'electron/main.ts'), 'utf8')
+    expect(mainProcessSource).toContain("setWindowOpenHandler(() => ({ action: 'deny' }))")
+    expect(mainProcessSource).toContain("mainWindow.webContents.on('will-navigate'")
+    expect(mainProcessSource).toContain('isAllowedAppNavigation(url)')
+    expect(mainProcessSource).toContain("path.join(__dirname, '../../index.html')")
+  })
 })

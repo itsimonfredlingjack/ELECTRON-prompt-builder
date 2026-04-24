@@ -18,6 +18,14 @@ module.exports = {
     ],
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
   },
+  overrides: [
+    {
+      files: ['**/*.cts'],
+      rules: {
+        '@typescript-eslint/no-require-imports': 'off'
+      }
+    }
+  ],
   settings: {
     react: {
       version: 'detect'

@@ -1,6 +1,6 @@
 import electron from 'electron'
 import path from 'path'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 import type { BrowserWindow as BrowserWindowType } from 'electron'
 import type {
   AiGenerationEvent,
@@ -29,8 +29,24 @@ const devServerHost = process.env.DEV_SERVER_HOST ?? '127.0.0.1'
 const parsedDevPort = Number.parseInt(process.env.DEV_SERVER_PORT ?? '5173', 10)
 const devServerPort = Number.isNaN(parsedDevPort) ? 5173 : parsedDevPort
 const devServerUrl = `http://${devServerHost}:${devServerPort}`
+const packagedRendererPath = path.join(__dirname, '../../index.html')
+const packagedRendererUrl = pathToFileURL(packagedRendererPath).toString()
 let mainWindow: BrowserWindowType | null = null
 let isCleaningUpSessionUploads = false
+
+function isAllowedAppNavigation(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+
+    if (isDev) {
+      return parsed.origin === new URL(devServerUrl).origin
+    }
+
+    return parsed.toString() === packagedRendererUrl
+  } catch {
+    return false
+  }
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -57,6 +73,14 @@ function createWindow() {
 
   Menu.setApplicationMenu(null)
 
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!isAllowedAppNavigation(url)) {
+      event.preventDefault()
+    }
+  })
+
   mainWindow.on('maximize', () => {
     mainWindow?.webContents.send('window:state-change', { isMaximized: true })
   })
@@ -73,7 +97,7 @@ function createWindow() {
     mainWindow.loadURL(devServerUrl)
     mainWindow.webContents.openDevTools()
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../index.html'))
+    mainWindow.loadFile(packagedRendererPath)
   }
 }
 
