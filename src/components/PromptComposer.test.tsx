@@ -3,7 +3,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -12,6 +12,7 @@ const useComposerActionsMock = vi.fn()
 const useGenerationStateMock = vi.fn()
 const useGenerationControlsMock = vi.fn()
 const useRuntimeStateMock = vi.fn()
+const useRuntimeActionsMock = vi.fn()
 
 vi.mock('@/contexts/composerContext', () => ({
   useComposerState: () => useComposerStateMock(),
@@ -25,6 +26,7 @@ vi.mock('@/contexts/generationContext', () => ({
 
 vi.mock('@/contexts/runtimeContext', () => ({
   useRuntimeState: () => useRuntimeStateMock(),
+  useRuntimeActions: () => useRuntimeActionsMock(),
 }))
 
 import { PromptComposer } from '@/components/PromptComposer'
@@ -63,6 +65,8 @@ function createComposerActions(overrides: Record<string, unknown> = {}) {
     setPromptStrategy: vi.fn(),
     addExtraConstraint: vi.fn(),
     removeExtraConstraint: vi.fn(),
+    attachFile: vi.fn(),
+    clearAttachment: vi.fn(),
     ...overrides,
   }
 }
@@ -79,6 +83,10 @@ async function renderPromptComposer() {
 }
 
 describe('PromptComposer', () => {
+  beforeEach(() => {
+    useRuntimeActionsMock.mockReturnValue({ refreshRuntime: vi.fn() })
+  })
+
   afterEach(() => {
     vi.clearAllMocks()
   })
@@ -92,19 +100,58 @@ describe('PromptComposer', () => {
       selectedModelId: 'gemma4:e4b',
       selectedModelInstalled: true,
       selectedModelReady: true,
+      selectedModelVisionSupport: 'supported',
     })
 
     const html = renderToStaticMarkup(<PromptComposer />)
 
-    expect(html).toContain('Input')
+    expect(html).toContain('Brief input')
     expect(html).toContain('Raw intent')
-    expect(html).toContain('Prompt settings')
-    expect(html).toContain('Context and diagnostics')
-    expect(html).toContain('Constraints')
-    expect(html).toContain('Build Prompt')
-    expect(html).toContain('Code')
-    expect(html).toContain('Analysis')
-    expect(html).toContain('Creative')
+    expect(html).toContain('Context')
+    expect(html).toContain('Advanced')
+    expect(html).toContain('Sharpen')
+    expect(html).not.toContain('Must include')
+    expect(html).not.toContain('Reference material')
+  })
+
+  it('keeps advanced controls collapsed until opened', async () => {
+    useComposerStateMock.mockReturnValue(createComposerState())
+    useComposerActionsMock.mockReturnValue(createComposerActions())
+    useGenerationStateMock.mockReturnValue({ isBusy: false, generationState: 'idle', error: null, notice: null })
+    useGenerationControlsMock.mockReturnValue({ canGenerate: false, startGeneration: vi.fn(), cancelGeneration: vi.fn() })
+    useRuntimeStateMock.mockReturnValue({
+      selectedModelId: 'gemma4:e4b',
+      selectedModelInstalled: true,
+      selectedModelReady: true,
+      selectedModelVisionSupport: 'supported',
+    })
+
+    const { container, root } = await renderPromptComposer()
+
+    expect(container.textContent).not.toContain('Must include')
+    const advancedToggle = container.querySelector('.advanced-toggle') as HTMLButtonElement | null
+    expect(advancedToggle).toBeTruthy()
+
+    await act(async () => {
+      advancedToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(advancedToggle?.getAttribute('aria-expanded')).toBe('true')
+    expect(container.textContent).toContain('Include')
+    expect(container.textContent).toContain('Pinned rule')
+
+    const settingsTab = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Settings')
+    await act(async () => {
+      settingsTab?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('select#brief-intent')).toBeTruthy()
+    expect(container.querySelector('select#brief-target')).toBeTruthy()
+    expect(container.querySelector('select#brief-strategy')).toBeTruthy()
+
+    await act(async () => {
+      root.unmount()
+    })
   })
 
   it('keeps the raw intent label associated with the primary textarea', async () => {
@@ -116,6 +163,7 @@ describe('PromptComposer', () => {
       selectedModelId: 'gemma4:e4b',
       selectedModelInstalled: true,
       selectedModelReady: true,
+      selectedModelVisionSupport: 'supported',
     })
 
     const { container, root } = await renderPromptComposer()
@@ -141,6 +189,7 @@ describe('PromptComposer', () => {
       selectedModelId: 'gemma4:e4b',
       selectedModelInstalled: true,
       selectedModelReady: true,
+      selectedModelVisionSupport: 'supported',
     })
 
     const html = renderToStaticMarkup(<PromptComposer />)

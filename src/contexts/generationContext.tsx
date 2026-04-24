@@ -314,6 +314,10 @@ export function GenerationProvider({ children }: GenerationProviderProps) {
   }, [])
 
   useEffect(() => {
+    if (!window.electronAPI?.onGenerationEvent) {
+      return undefined
+    }
+
     return window.electronAPI.onGenerationEvent((event) => {
       const previousSession = generationSessionRef.current
       const lifecycleUpdate = applyGenerationEvent(previousSession, event)

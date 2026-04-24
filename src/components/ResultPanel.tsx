@@ -5,7 +5,16 @@ import { useRuntimeState } from '@/contexts/runtimeContext'
 import { writeClipboardText } from '@/lib/clipboard'
 
 export function ResultPanel() {
-  const { draftText, hasOutput } = useOutputMeta()
+  const {
+    activeVersion,
+    currentRequestMode,
+    draftText,
+    hasOutput,
+    promptIntent,
+    promptStrategy,
+    promptTarget,
+    sourceValue,
+  } = useOutputMeta()
   const { clearOutput, setDraftText } = useOutputActions()
   const { startGeneration, canGenerate } = useGenerationControls()
   const { isBusy, isStreaming, generationState, error } = useGenerationState()
@@ -13,14 +22,21 @@ export function ResultPanel() {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
 
   const hasDraft = draftText.trim().length > 0
+  const isOffline = runtimeSnapshot ? !runtimeSnapshot.daemonReachable : true
+  const showOfflineRecovery = isOffline && !hasDraft && !isStreaming
   const wordCount = useMemo(() => (
     draftText.trim() ? draftText.trim().split(/\s+/).length : 0
   ), [draftText])
+  const lineCount = useMemo(() => (
+    draftText.trim() ? draftText.split(/\n/).length : 0
+  ), [draftText])
   const outputState = isStreaming
     ? 'Streaming'
-    : hasDraft
-      ? 'Ready'
-      : error
+    : showOfflineRecovery
+      ? 'Local recovery'
+      : hasDraft
+        ? 'Ready'
+        : error
         ? 'Needs attention'
         : 'Empty'
   const runtimeLabel = !runtimeSnapshot?.daemonReachable
@@ -30,6 +46,19 @@ export function ResultPanel() {
       : selectedModelId
         ? 'Model warming'
         : 'No model selected'
+  const provenanceMeta = useMemo(() => {
+    if (!activeVersion) return null
+
+    return [
+      activeVersion.title || formatRequestMode(currentRequestMode),
+      formatIsoDate(activeVersion.createdAt),
+      promptIntent,
+      promptTarget,
+      promptStrategy,
+    ].filter(Boolean).join(' · ')
+  }, [activeVersion, currentRequestMode, promptIntent, promptStrategy, promptTarget])
+  const provenanceSource = activeVersion?.sourceValue || sourceValue
+  const showDraftProvenance = hasDraft && !!activeVersion
 
   const handleCopy = async () => {
     if (!hasDraft) return
@@ -39,76 +68,142 @@ export function ResultPanel() {
   }
 
   return (
-    <section className="panel-stack output-workspace">
-      <header className="panel-header output-header">
-        <div>
-          <p className="util-microtype">Output</p>
-          <h2 className="panel-title">Generated prompt draft</h2>
-        </div>
+    <section className="draft" aria-label="Generated prompt draft">
+      <header className="draft-head">
+        <span className="draft-title">Prompt draft</span>
+        {isStreaming ? (
+          <span className="badge badge--elec"><span className="dot dot--electric" />streaming</span>
+        ) : hasDraft ? (
+          <span className="badge badge--mint"><span className="dot" />draft sharpened</span>
+        ) : showOfflineRecovery ? (
+          <span className="badge badge--quiet"><span className="dot dot--idle" />empty</span>
+        ) : error ? (
+          <span className="badge badge--warn"><span className="dot dot--warn" />needs attention</span>
+        ) : (
+          <span className="badge"><span className="dot dot--idle" />idle</span>
+        )}
 
-        <div className="output-actions">
-          <ActionButton onClick={() => void handleCopy()} disabled={!hasDraft || isStreaming}>
-            {copyState === 'copied' ? 'Copied' : copyState === 'error' ? 'Retry Copy' : 'Copy'}
-          </ActionButton>
-          <ActionButton onClick={clearOutput} disabled={!hasOutput && !isStreaming}>
-            Clear
-          </ActionButton>
-          <ActionButton onClick={() => void startGeneration()} disabled={isBusy || !canGenerate} tone="primary">
-            Regenerate
-          </ActionButton>
-        </div>
+        {(hasDraft || isStreaming) && (
+          <div className="draft-stats">
+            <div className="draft-stat"><span className="n">{wordCount}</span><span className="l">words</span></div>
+            <div className="draft-stat"><span className="n">{lineCount}</span><span className="l">lines</span></div>
+            <div className="draft-stat"><span className="n">{hasDraft ? 'v1' : '-'}</span><span className="l">rev</span></div>
+          </div>
+        )}
       </header>
 
-      <div className="panel-body output-body">
-        <div className="draft-status-grid">
-          <StatusStat label="State" value={outputState} tone={isStreaming ? 'active' : hasDraft ? 'ready' : 'idle'} />
-          <StatusStat label="Runtime" value={runtimeLabel} tone={selectedModelReady ? 'ready' : 'warning'} />
-          <StatusStat label="Words" value={String(wordCount)} tone="idle" />
-        </div>
+      {isStreaming && <div className="stream-track" />}
 
-        {!hasOutput && !isStreaming ? (
-          <div className={`output-empty ${error ? 'is-error' : ''}`}>
-            <p className="empty-title">{error ? 'Generation needs attention' : 'Draft bay is empty'}</p>
-            <p className="empty-copy">
-              {error ?? 'Build a prompt from the input panel to start the draft.'}
-            </p>
-          </div>
-        ) : (
-          <div className={`ui-output-shell ${isStreaming ? 'is-streaming' : ''}`}>
-            <div className="output-editor-bar">
-              <div>
-                <span className="util-microtype">{isStreaming ? 'Streaming' : 'Editable draft'}</span>
-                <p>{generationState}</p>
-              </div>
-              <span className="output-badge">{hasDraft ? 'Prompt text' : 'Waiting for first token'}</span>
+      <div className="draft-body slim-scroll">
+        <div className={`ui-output-shell ${isStreaming ? 'is-streaming' : ''} ${showOfflineRecovery ? 'is-blocked' : ''}`}>
+          <div className="output-editor-bar">
+            <div>
+              <span className="output-state-label">{outputState}</span>
+              <p>{generationState} · {runtimeLabel}</p>
             </div>
+            <span className="output-badge">
+              {isStreaming ? 'Waiting for first token' : hasDraft ? 'Prompt text' : showOfflineRecovery ? 'Blocked locally' : 'Ready for first draft'}
+            </span>
+          </div>
 
+          {showDraftProvenance && (
+            <div className="draft-provenance" aria-label="Draft provenance">
+              <span className="draft-provenance-kicker">Loaded draft</span>
+              <span className="draft-provenance-source">
+                {provenanceSource || 'No source brief saved.'}
+              </span>
+              {provenanceMeta && (
+                <span className="draft-provenance-meta">{provenanceMeta}</span>
+              )}
+            </div>
+          )}
+
+          {showOfflineRecovery ? (
+            <>
+              <OfflineRecovery />
+              <DraftHint error={null} />
+            </>
+          ) : hasOutput || isStreaming ? (
             <textarea
               value={draftText}
               onChange={(event) => setDraftText(event.target.value)}
               className="ui-output-editor"
+              placeholder={isStreaming ? 'Waiting for the first local token...' : undefined}
               spellCheck={false}
             />
-          </div>
-        )}
+          ) : (
+            <DraftHint error={error} />
+          )}
+        </div>
       </div>
+
+      <footer className="draft-foot">
+        <div className="draft-local">
+          <span className={`dot ${selectedModelReady ? '' : 'dot--idle'}`} />
+          <span>{isOffline ? 'local only' : 'local · nothing sent'}</span>
+        </div>
+        <div className="draft-actions">
+          <ActionButton onClick={() => void startGeneration()} disabled={isBusy || !canGenerate}>
+            Regenerate
+          </ActionButton>
+          <ActionButton onClick={clearOutput} disabled={!hasOutput && !isStreaming}>
+            Clear
+          </ActionButton>
+          <ActionButton onClick={() => void handleCopy()} disabled={!hasDraft || isStreaming} tone="primary">
+            {copyState === 'copied' ? 'Copied' : copyState === 'error' ? 'Retry Copy' : 'Copy'}
+          </ActionButton>
+        </div>
+      </footer>
     </section>
   )
 }
 
-interface StatusStatProps {
-  label: string
-  value: string
-  tone: 'active' | 'ready' | 'warning' | 'idle'
+interface DraftHintProps {
+  error: string | null
 }
 
-function StatusStat({ label, value, tone }: StatusStatProps) {
+function DraftHint({ error }: DraftHintProps) {
   return (
-    <div className={`status-stat is-${tone}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <div className={`editor-empty-hint ${error ? 'is-error' : ''}`}>
+      <span className="editor-empty-kicker">{error ? 'Runtime message' : 'Next step'}</span>
+      <p className="editor-empty-title">{error ? 'Generation needs attention.' : 'Draft is empty.'}</p>
+      <p className="editor-empty-copy">
+        {error ?? 'Write a brief on the left, then sharpen. Nothing leaves this machine.'}
+      </p>
+      {!error && (
+        <p className="editor-empty-command"><span>⌘↵</span> sharpen</p>
+      )}
     </div>
   )
+}
+
+function OfflineRecovery() {
+  return (
+    <div className="offline-recovery" role="status" aria-live="polite">
+      <div className="recovery-card">
+        <div className="recovery-copy">
+          <span className="editor-empty-kicker">Local runtime</span>
+          <h2>Start Ollama to draft locally.</h2>
+          <p>
+            Needs <code>127.0.0.1:11434</code>. Start the daemon, then use Retry beside Sharpen.
+          </p>
+        </div>
+        <div className="offline-command" aria-label="Command to start Ollama">
+          <span>$</span>
+          <code>ollama serve</code>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function formatRequestMode(mode: string) {
+  return mode.replace(/-/g, ' ')
+}
+
+function formatIsoDate(value: string) {
+  if (!value) return null
+  return value.slice(0, 10)
 }
 
 interface ActionButtonProps {
@@ -124,7 +219,7 @@ function ActionButton({ children, disabled = false, onClick, tone = 'neutral' }:
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`ui-action ${tone === 'primary' ? 'is-primary' : ''}`}
+      className={`btn btn--sm ${tone === 'primary' ? '' : 'btn--ghost'}`}
     >
       {children}
     </button>

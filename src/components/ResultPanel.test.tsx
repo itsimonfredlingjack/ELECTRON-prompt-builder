@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const useGenerationStateMock = vi.fn()
 const useGenerationControlsMock = vi.fn()
 const useRuntimeStateMock = vi.fn()
+const useRuntimeActionsMock = vi.fn()
 
 vi.mock('@/contexts/generationContext', () => ({
   useGenerationState: () => useGenerationStateMock(),
@@ -15,6 +16,7 @@ vi.mock('@/contexts/generationContext', () => ({
 
 vi.mock('@/contexts/runtimeContext', () => ({
   useRuntimeState: () => useRuntimeStateMock(),
+  useRuntimeActions: () => useRuntimeActionsMock(),
 }))
 
 import { ResultPanel } from '@/components/ResultPanel'
@@ -62,12 +64,23 @@ async function renderResultPanel({
   sourceValue,
   isStreaming,
   canGenerate = true,
-}: HarnessProps & { isStreaming: boolean; canGenerate?: boolean }) {
+  daemonReachable = true,
+  selectedModelReady = true,
+  error = null,
+}: HarnessProps & {
+  isStreaming: boolean
+  canGenerate?: boolean
+  daemonReachable?: boolean
+  selectedModelReady?: boolean
+  error?: string | null
+}) {
   const startGeneration = vi.fn()
+  const refreshRuntime = vi.fn().mockResolvedValue(undefined)
   useGenerationStateMock.mockReturnValue({
     isStreaming,
     isBusy: isStreaming,
     generationState: isStreaming ? 'generating' : 'completed',
+    error,
   })
   useGenerationControlsMock.mockReturnValue({
     startGeneration,
@@ -75,10 +88,14 @@ async function renderResultPanel({
   })
   useRuntimeStateMock.mockReturnValue({
     selectedModelId: 'gemma4:e4b',
-    selectedModelReady: true,
+    selectedModelReady,
+    runtimeRefreshing: false,
     runtimeSnapshot: {
-      daemonReachable: true,
+      daemonReachable,
     },
+  })
+  useRuntimeActionsMock.mockReturnValue({
+    refreshRuntime,
   })
 
   const container = document.createElement('div')
@@ -92,7 +109,7 @@ async function renderResultPanel({
     )
   })
 
-  return { container, root, startGeneration }
+  return { container, root, startGeneration, refreshRuntime }
 }
 
 describe('ResultPanel', () => {
@@ -120,8 +137,44 @@ describe('ResultPanel', () => {
       canGenerate: false,
     })
 
-    expect(container.textContent).toContain('Draft bay is empty')
-    expect(container.textContent).toContain('Build a prompt from the input panel to start the draft.')
+    expect(container.textContent).toContain('Draft is empty')
+    expect(container.textContent).toContain('Write a brief on the left, then sharpen.')
+    expect(container.textContent).toContain('Ready for first draft')
+
+    await act(async () => {
+      root.unmount()
+    })
+  })
+
+  it('shows local Ollama recovery inside the draft pane when offline', async () => {
+    const { container, root } = await renderResultPanel({
+      value: '',
+      sourceValue: '',
+      isStreaming: false,
+      canGenerate: false,
+      daemonReachable: false,
+      selectedModelReady: false,
+    })
+
+    expect(container.textContent).toContain('Start Ollama to draft locally.')
+    expect(container.textContent).toContain('ollama serve')
+    expect(container.textContent).toContain('use Retry beside Sharpen')
+
+    await act(async () => {
+      root.unmount()
+    })
+  })
+
+  it('keeps the editor shell mounted while streaming before first token', async () => {
+    const { container, root } = await renderResultPanel({
+      value: '',
+      sourceValue: 'turn this into a stricter prompt',
+      isStreaming: true,
+    })
+
+    expect(container.textContent).toContain('Waiting for first token')
+    expect(container.textContent).not.toContain('Draft is empty')
+    expect(container.querySelector('textarea.ui-output-editor')).toBeTruthy()
 
     await act(async () => {
       root.unmount()
@@ -138,7 +191,81 @@ describe('ResultPanel', () => {
     expect(container.textContent).toContain('Copy')
     expect(container.textContent).toContain('Clear')
     expect(container.textContent).toContain('Regenerate')
-    expect(container.textContent).toContain('Generated prompt draft')
+    expect(container.textContent).toContain('Prompt draft')
+    expect(container.textContent).toContain('Loaded draft')
+    expect(container.textContent).toContain('need a better prompt for a flaky react test')
+
+    await act(async () => {
+      root.unmount()
+    })
+  })
+
+  it('shows provenance for a restored persisted draft', async () => {
+    window.localStorage.setItem('prompt-builder.output-state.v1', JSON.stringify({
+      activeVersionId: 'stored-v1',
+      currentTab: 'prompt',
+      versions: [{
+        id: 'stored-v1',
+        title: 'Initial draft 3',
+        promptText: 'Write a release-ready review prompt.',
+        sourceValue: 'review the UI before shipping',
+        briefText: 'review the UI before shipping',
+        contextText: '',
+        mustInclude: '',
+        mustAvoid: '',
+        outputShape: '',
+        referenceMaterial: '',
+        extraConstraints: [],
+        hasImageAttachment: false,
+        category: 'general',
+        promptIntent: 'critique',
+        promptTarget: 'general',
+        promptStrategy: 'balanced',
+        kind: 'initial',
+        parentVersionId: null,
+        requestLabel: null,
+        createdAt: '2026-04-24T10:00:00.000Z',
+        saved: false,
+      }],
+    }))
+    useGenerationStateMock.mockReturnValue({
+      isStreaming: false,
+      isBusy: false,
+      generationState: 'completed',
+      error: null,
+    })
+    useGenerationControlsMock.mockReturnValue({
+      startGeneration: vi.fn(),
+      canGenerate: false,
+    })
+    useRuntimeStateMock.mockReturnValue({
+      selectedModelId: 'gemma4:e4b',
+      selectedModelReady: true,
+      runtimeRefreshing: false,
+      runtimeSnapshot: {
+        daemonReachable: true,
+      },
+    })
+    useRuntimeActionsMock.mockReturnValue({
+      refreshRuntime: vi.fn().mockResolvedValue(undefined),
+    })
+
+    const container = document.createElement('div')
+    const root = createRoot(container)
+
+    await act(async () => {
+      root.render(
+        <OutputProvider>
+          <ResultPanel />
+        </OutputProvider>,
+      )
+    })
+
+    expect(container.textContent).toContain('Loaded draft')
+    expect(container.textContent).toContain('review the UI before shipping')
+    expect(container.textContent).toContain('Initial draft 3')
+    expect(container.textContent).toContain('2026-04-24')
+    expect(container.textContent).toContain('critique')
 
     await act(async () => {
       root.unmount()

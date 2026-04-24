@@ -18,6 +18,18 @@ vi.mock('@/components/TitleBar', () => ({
   TitleBar: () => <header id="title-bar" />,
 }))
 
+vi.mock('@/contexts/runtimeContext', () => ({
+  useRuntimeState: () => ({
+    runtimeSnapshot: {
+      daemonReachable: true,
+      modelListAvailable: true,
+      models: [{ id: 'gemma4:e4b' }],
+    },
+    selectedModelReady: true,
+    selectedModelVisionSupport: 'supported',
+  }),
+}))
+
 import App from '@/App'
 
 describe('App shell', () => {
@@ -33,9 +45,9 @@ describe('App shell', () => {
     expect(container.querySelector('#composer-placeholder')).toBeTruthy()
     expect(container.querySelector('#result-placeholder')).toBeTruthy()
 
-    const main = container.querySelector('main')
-    expect(main?.className).toContain('flex-1')
-    expect(container.querySelector('.workspace-grid')).toBeTruthy()
+    expect(container.querySelector('.app-win')).toBeTruthy()
+    expect(container.querySelector('main.ws')).toBeTruthy()
+    expect(container.textContent).toContain('no cloud request sent')
 
     await act(async () => {
       root.unmount()
