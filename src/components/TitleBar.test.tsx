@@ -33,7 +33,9 @@ describe('TitleBar', () => {
 
     const html = renderToStaticMarkup(<TitleBar />)
 
-    expect(html).toContain('tb-native-spacer')
+    // Check for the inline tailwind class that replaced .tb-native-spacer
+    expect(html).toContain('w-[80px] h-[1px]')
+    expect(html).toContain('aria-hidden="true"')
     expect(html).not.toContain('tb-traffic')
     expect(html).toContain('ollama offline')
   })

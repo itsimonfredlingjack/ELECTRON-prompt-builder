@@ -45,8 +45,10 @@ describe('App shell', () => {
     expect(container.querySelector('#composer-placeholder')).toBeTruthy()
     expect(container.querySelector('#result-placeholder')).toBeTruthy()
 
-    expect(container.querySelector('.app-win')).toBeTruthy()
-    expect(container.querySelector('main.ws')).toBeTruthy()
+    // Assert that the grid layout container is present using a more robust selector
+    const mainElement = container.querySelector('main')
+    expect(mainElement).toBeTruthy()
+    expect(mainElement?.className).toContain('grid')
     expect(container.textContent).toContain('no cloud request sent')
 
     await act(async () => {
