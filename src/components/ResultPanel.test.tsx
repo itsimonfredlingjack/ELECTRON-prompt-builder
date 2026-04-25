@@ -172,8 +172,9 @@ describe('ResultPanel', () => {
       isStreaming: true,
     })
 
-    expect(container.querySelector('textarea.ui-output-editor')).toBeTruthy()
-    expect(container.querySelector('textarea.ui-output-editor')?.getAttribute('placeholder')).toContain('Waiting for first token')
+    const textarea = container.querySelector('textarea')
+    expect(textarea).toBeTruthy()
+    expect(textarea?.getAttribute('placeholder')).toContain('Waiting for first token')
     expect(container.textContent).not.toContain('Draft is empty')
 
     await act(async () => {

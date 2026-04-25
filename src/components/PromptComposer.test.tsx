@@ -129,7 +129,7 @@ describe('PromptComposer', () => {
     const { container, root } = await renderPromptComposer()
 
     expect(container.textContent).not.toContain('Must include')
-    const advancedToggle = container.querySelector('.advanced-toggle') as HTMLButtonElement | null
+    const advancedToggle = Array.from(container.querySelectorAll('button')).find((btn) => btn.textContent?.includes('Advanced'))
     expect(advancedToggle).toBeTruthy()
 
     await act(async () => {
