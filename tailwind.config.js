@@ -59,8 +59,10 @@ export default {
         'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.18)',
         'DEFAULT': '0 1px 3px 0 rgba(0, 0, 0, 0.24), 0 1px 2px 0 rgba(0, 0, 0, 0.18)',
         'panel': '0 24px 56px -16px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(232, 218, 196, 0.04)',
-        'inner-soft': 'inset 0 1px 0 rgba(255, 248, 232, 0.04)',
-        'glow-accent': '0 0 24px rgba(220, 181, 120, 0.18)',
+        'inner-soft': 'inset 0 1px 0 rgba(255, 248, 232, 0.06)',
+        'glow-accent': '0 0 24px rgba(212, 165, 116, 0.20)',
+        'glow-accent-soft': '0 0 16px rgba(212, 165, 116, 0.08)',
+        'focus-amber': '0 0 0 1px rgba(212, 165, 116, 0.55), 0 0 0 4px rgba(212, 165, 116, 0.15)',
         'none': 'none',
       },
       transitionDuration: {

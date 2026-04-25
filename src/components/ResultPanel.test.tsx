@@ -137,7 +137,7 @@ describe('ResultPanel', () => {
       canGenerate: false,
     })
 
-    expect(container.textContent).toContain('Draft is empty')
+    expect(container.textContent).toContain('Sharpen a brief to begin')
     expect(container.textContent).toContain('Write a brief on the left, then sharpen.')
     expect(container.textContent).toContain('sharpen')
 

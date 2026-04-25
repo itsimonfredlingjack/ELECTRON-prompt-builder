@@ -1,8 +1,22 @@
 import { useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useGenerationControls, useGenerationState } from '@/contexts/generationContext'
 import { useOutputActions, useOutputMeta } from '@/contexts/outputContext'
 import { useRuntimeState } from '@/contexts/runtimeContext'
 import { writeClipboardText } from '@/lib/clipboard'
+import {
+  AlertTriangle,
+  Check,
+  Copy,
+  RotateCcw,
+  Sparkles,
+  Trash2,
+  WifiOff,
+} from '@/lib/icons'
+import { defaultSpring, offlineSpring, pressSpring } from '@/lib/springs'
+
+type CopyState = 'idle' | 'copied' | 'error'
+type StatusKey = 'streaming' | 'sharpened' | 'offline' | 'attention' | 'idle'
 
 export function ResultPanel() {
   const {
@@ -19,7 +33,7 @@ export function ResultPanel() {
   const { startGeneration, canGenerate } = useGenerationControls()
   const { isBusy, isStreaming, generationState, error } = useGenerationState()
   const { selectedModelId, selectedModelReady, runtimeSnapshot } = useRuntimeState()
-  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
+  const [copyState, setCopyState] = useState<CopyState>('idle')
 
   const hasDraft = draftText.trim().length > 0
   const isOffline = runtimeSnapshot ? !runtimeSnapshot.daemonReachable : true
@@ -55,21 +69,21 @@ export function ResultPanel() {
 
   const runtimeMeta = selectedModelReady ? selectedModelId : selectedModelId ? 'model warming' : 'no model'
 
+  const statusKey: StatusKey = isStreaming
+    ? 'streaming'
+    : hasDraft
+      ? 'sharpened'
+      : showOfflineRecovery
+        ? 'offline'
+        : error
+          ? 'attention'
+          : 'idle'
+
   return (
     <section className="draft" aria-label="Generated prompt draft">
       <header className="draft-head">
         <span className="draft-title">Prompt draft</span>
-        {isStreaming ? (
-          <span className="badge badge--accent"><span className="dot" />streaming</span>
-        ) : hasDraft ? (
-          <span className="badge badge--accent"><span className="dot" />sharpened</span>
-        ) : showOfflineRecovery ? (
-          <span className="badge badge--err"><span className="dot dot--err" />offline</span>
-        ) : error ? (
-          <span className="badge badge--warn"><span className="dot dot--warn" />needs attention</span>
-        ) : (
-          <span className="badge"><span className="dot dot--idle" />idle</span>
-        )}
+        <StatusBadge statusKey={statusKey} />
 
         {(hasDraft || isStreaming) && (
           <div className="draft-stats">
@@ -80,7 +94,18 @@ export function ResultPanel() {
         )}
       </header>
 
-      {isStreaming && <div className="stream-track" />}
+      <AnimatePresence>
+        {isStreaming && (
+          <motion.div
+            key="stream-track"
+            className="stream-track"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+          />
+        )}
+      </AnimatePresence>
 
       {showOfflineRecovery ? (
         <OfflineRecovery />
@@ -118,28 +143,57 @@ export function ResultPanel() {
           <span>{generationState}</span>
         </div>
         <div className="draft-actions">
-          <ActionButton onClick={() => void startGeneration()} disabled={isBusy || !canGenerate}>
+          <ActionButton
+            onClick={() => void startGeneration()}
+            disabled={isBusy || !canGenerate}
+            icon={<RotateCcw size={12} strokeWidth={2.25} />}
+          >
             Regenerate
           </ActionButton>
-          <ActionButton onClick={clearOutput} disabled={!hasOutput && !isStreaming}>
+          <ActionButton
+            onClick={clearOutput}
+            disabled={!hasOutput && !isStreaming}
+            icon={<Trash2 size={12} strokeWidth={2.25} />}
+          >
             Clear
           </ActionButton>
-          <ActionButton onClick={() => void handleCopy()} disabled={!hasDraft || isStreaming} tone="primary">
-            {copyState === 'copied' ? 'Copied' : copyState === 'error' ? 'Retry copy' : 'Copy'}
-          </ActionButton>
+          <CopyButton
+            onClick={() => void handleCopy()}
+            disabled={!hasDraft || isStreaming}
+            copyState={copyState}
+          />
         </div>
       </footer>
     </section>
   )
 }
 
-function EmptyMark() {
+function StatusBadge({ statusKey }: { statusKey: StatusKey }) {
+  const config = STATUS_CONFIG[statusKey]
   return (
-    <svg className="empty-glyph" viewBox="0 0 200 200" fill="none" aria-hidden="true">
-      <path d="M60 50 L40 70 L40 130 L60 150" stroke="currentColor" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" opacity="0.45"/>
-      <path d="M110 75 L145 100 L110 125" stroke="currentColor" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
-    </svg>
+    <AnimatePresence mode="popLayout" initial={false}>
+      <motion.span
+        key={statusKey}
+        layout
+        initial={{ opacity: 0, y: -2 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 2 }}
+        transition={defaultSpring}
+        className={`badge ${config.className}`}
+      >
+        <span className={`dot ${config.dot}`} />
+        {config.label}
+      </motion.span>
+    </AnimatePresence>
   )
+}
+
+const STATUS_CONFIG: Record<StatusKey, { label: string; className: string; dot: string }> = {
+  streaming: { label: 'streaming', className: 'badge--accent', dot: '' },
+  sharpened: { label: 'sharpened', className: 'badge--accent', dot: '' },
+  offline: { label: 'offline', className: 'badge--err', dot: 'dot--err' },
+  attention: { label: 'needs attention', className: 'badge--warn', dot: 'dot--warn' },
+  idle: { label: 'idle', className: '', dot: 'dot--idle' },
 }
 
 interface DraftHintProps {
@@ -149,40 +203,56 @@ interface DraftHintProps {
 function DraftHint({ error }: DraftHintProps) {
   if (error) {
     return (
-      <div className="empty is-error" role="alert">
-        <EmptyMark />
+      <motion.div
+        className="empty is-error"
+        role="alert"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={defaultSpring}
+      >
+        <span className="empty-glyph"><AlertTriangle size={26} strokeWidth={1.7} /></span>
         <div className="empty-title">Generation needs attention.</div>
         <div className="empty-sub">{error}</div>
-      </div>
+      </motion.div>
     )
   }
   return (
-    <div className="empty">
-      <EmptyMark />
-      <div className="empty-title">Draft is empty.</div>
+    <motion.div
+      className="empty"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={defaultSpring}
+    >
+      <span className="empty-glyph"><Sparkles size={26} strokeWidth={1.7} /></span>
+      <div className="empty-title">Sharpen a brief to begin.</div>
       <div className="empty-sub">Write a brief on the left, then sharpen. Nothing leaves this machine.</div>
       <div className="empty-row">
         <span className="kbd kbd--accent">⌘</span>
         <span className="kbd kbd--accent">↵</span>
         <span>sharpen</span>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
 function OfflineRecovery() {
   return (
-    <div className="fullstate" role="status" aria-live="polite">
-      <svg className="fullstate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M4 17l6-6-6-6M12 19h8"/>
-      </svg>
-      <div className="fullstate-title">Ollama is not running.</div>
+    <motion.div
+      className="fullstate"
+      role="status"
+      aria-live="polite"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={offlineSpring}
+    >
+      <span className="fullstate-icon"><WifiOff size={26} strokeWidth={1.7} /></span>
+      <div className="fullstate-title">Ollama is sleeping.</div>
       <div className="fullstate-sub">
         Start Ollama to draft locally. Needs <code>127.0.0.1:11434</code>. Start the daemon, then use Retry beside Sharpen.
       </div>
       <div className="fullstate-code"><span>$</span> ollama serve</div>
       <div className="fullstate-note">no cloud fallback · by design</div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -199,18 +269,64 @@ interface ActionButtonProps {
   children: string
   disabled?: boolean
   onClick: () => void
-  tone?: 'primary' | 'neutral'
+  icon?: React.ReactNode
 }
 
-function ActionButton({ children, disabled = false, onClick, tone = 'neutral' }: ActionButtonProps) {
+function ActionButton({ children, disabled = false, onClick, icon }: ActionButtonProps) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`btn btn--sm ${tone === 'primary' ? '' : 'btn--ghost'}`}
+      whileTap={disabled ? undefined : { scale: 0.96 }}
+      transition={pressSpring}
+      className="btn btn--sm btn--ghost"
     >
+      {icon}
       {children}
-    </button>
+    </motion.button>
   )
+}
+
+function CopyButton({
+  onClick,
+  disabled,
+  copyState,
+}: {
+  onClick: () => void
+  disabled: boolean
+  copyState: CopyState
+}) {
+  const config = COPY_CONFIG[copyState]
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      whileTap={disabled ? undefined : { scale: 0.96 }}
+      animate={copyState === 'copied' ? { scale: [1, 1.06, 1] } : { scale: 1 }}
+      transition={copyState === 'copied' ? { duration: 0.32, ease: [0.34, 1.32, 0.64, 1] } : pressSpring}
+      className="btn btn--sm"
+    >
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={copyState}
+          initial={{ opacity: 0, scale: 0.7 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.7 }}
+          transition={defaultSpring}
+          className="inline-flex items-center gap-1.5"
+        >
+          {config.icon}
+          {config.label}
+        </motion.span>
+      </AnimatePresence>
+    </motion.button>
+  )
+}
+
+const COPY_CONFIG: Record<CopyState, { label: string; icon: React.ReactNode }> = {
+  idle: { label: 'Copy', icon: <Copy size={12} strokeWidth={2.25} /> },
+  copied: { label: 'Copied', icon: <Check size={12} strokeWidth={2.5} /> },
+  error: { label: 'Retry copy', icon: <RotateCcw size={12} strokeWidth={2.25} /> },
 }
