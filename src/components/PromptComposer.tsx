@@ -274,7 +274,7 @@ export function PromptComposer() {
                           type="button"
                           onClick={() => removeExtraConstraint(chip)}
                           disabled={isBusy}
-                          className="chip chip--mint"
+                          className="chip chip--accent"
                         >
                           {chip}<span className="x">×</span>
                         </button>

@@ -60,9 +60,9 @@ export function ResultPanel() {
       <header className="draft-head">
         <span className="draft-title">Prompt draft</span>
         {isStreaming ? (
-          <span className="badge badge--mint"><span className="dot" />streaming</span>
+          <span className="badge badge--accent"><span className="dot" />streaming</span>
         ) : hasDraft ? (
-          <span className="badge badge--mint"><span className="dot" />sharpened</span>
+          <span className="badge badge--accent"><span className="dot" />sharpened</span>
         ) : showOfflineRecovery ? (
           <span className="badge badge--err"><span className="dot dot--err" />offline</span>
         ) : error ? (
@@ -136,8 +136,8 @@ export function ResultPanel() {
 function EmptyMark() {
   return (
     <svg className="empty-glyph" viewBox="0 0 200 200" fill="none" aria-hidden="true">
-      <path d="M60 50 L40 70 L40 130 L60 150" stroke="#485367" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M110 75 L145 100 L110 125" stroke="#6b7789" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M60 50 L40 70 L40 130 L60 150" stroke="currentColor" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" opacity="0.45"/>
+      <path d="M110 75 L145 100 L110 125" stroke="currentColor" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
     </svg>
   )
 }
@@ -162,8 +162,8 @@ function DraftHint({ error }: DraftHintProps) {
       <div className="empty-title">Draft is empty.</div>
       <div className="empty-sub">Write a brief on the left, then sharpen. Nothing leaves this machine.</div>
       <div className="empty-row">
-        <span className="kbd kbd--mint">⌘</span>
-        <span className="kbd kbd--mint">↵</span>
+        <span className="kbd kbd--accent">⌘</span>
+        <span className="kbd kbd--accent">↵</span>
         <span>sharpen</span>
       </div>
     </div>
