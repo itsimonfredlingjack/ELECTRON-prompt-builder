@@ -78,7 +78,7 @@ export function TitleBar() {
       </div>
 
       <div className="tb-right" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
-        <div className={`badge ${statusTone === 'is-offline' ? 'badge--err' : statusTone === 'is-ready' ? 'badge--mint' : 'badge--warn'}`} aria-label={`Runtime status: ${statusLabel}`}>
+        <div className={`badge ${statusTone === 'is-offline' ? 'badge--err' : statusTone === 'is-ready' ? 'badge--accent' : 'badge--warn'}`} aria-label={`Runtime status: ${statusLabel}`}>
           <span className={statusDotClass} />
           <span>{statusContext}</span>
         </div>
