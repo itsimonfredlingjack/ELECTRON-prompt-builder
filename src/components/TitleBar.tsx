@@ -8,33 +8,33 @@ type StatusTone = 'is-checking' | 'is-offline' | 'is-ready' | 'is-warming' | 'is
 
 const statusToneStyles: Record<StatusTone, { dot: string; text: string; ring: string; pulse: string }> = {
   'is-checking': {
-    dot: 'bg-warn shadow-[0_0_0_1px_rgba(240,148,90,0.30),0_0_6px_0_rgba(240,148,90,0.40)]',
+    dot: 'bg-warn shadow-[0_0_0_1px_rgba(194,105,31,0.28),0_0_4px_0_rgba(194,105,31,0.30)]',
     text: 'text-warn',
     ring: 'border-warn/30 bg-warn/[0.06]',
     pulse: 'animate-[sleepy-breathe_3s_ease-in-out_infinite]',
   },
   'is-offline': {
-    dot: 'bg-err shadow-[0_0_0_1px_rgba(232,90,106,0.32),0_0_6px_0_rgba(232,90,106,0.40)]',
+    dot: 'bg-err shadow-[0_0_0_1px_rgba(184,50,62,0.30),0_0_4px_0_rgba(184,50,62,0.30)]',
     text: 'text-err',
     ring: 'border-err/30 bg-err/[0.06]',
     pulse: 'animate-[sleepy-breathe_2.4s_ease-in-out_infinite]',
   },
   'is-ready': {
-    dot: 'bg-accent-500 shadow-[0_0_0_1px_rgba(212,165,116,0.35),0_0_8px_0_rgba(212,165,116,0.45)]',
-    text: 'text-accent-300',
-    ring: 'border-accent-500/25 bg-accent-500/[0.06]',
+    dot: 'bg-ink-100 shadow-[0_0_0_1px_rgba(31,32,35,0.18),0_0_4px_0_rgba(31,32,35,0.10)]',
+    text: 'text-ink-100',
+    ring: 'border-chrome-line-3 bg-surface-700',
     pulse: 'animate-[sleepy-breathe_5s_ease-in-out_infinite]',
   },
   'is-warming': {
-    dot: 'bg-warn shadow-[0_0_0_1px_rgba(240,148,90,0.30),0_0_6px_0_rgba(240,148,90,0.35)]',
+    dot: 'bg-warn shadow-[0_0_0_1px_rgba(194,105,31,0.28),0_0_4px_0_rgba(194,105,31,0.25)]',
     text: 'text-warn',
     ring: 'border-warn/25 bg-warn/[0.05]',
     pulse: 'animate-[sleepy-breathe_4s_ease-in-out_infinite]',
   },
   'is-idle': {
-    dot: 'bg-ink-400 shadow-[0_0_0_1px_var(--chrome-line-2),0_0_4px_0_var(--chrome-line)]',
+    dot: 'bg-ink-400 shadow-[0_0_0_1px_var(--chrome-line-2),0_0_3px_0_var(--chrome-line)]',
     text: 'text-ink-300',
-    ring: 'border-chrome-line-2 bg-surface-700/40',
+    ring: 'border-chrome-line-2 bg-surface-800',
     pulse: 'animate-[sleepy-breathe_6s_ease-in-out_infinite]',
   },
 }
@@ -141,7 +141,7 @@ export function TitleBar() {
           value={selectorValue}
           onChange={(event) => selectModel(event.target.value || null)}
           disabled={runtimeRefreshing || models.length === 0}
-          className="w-auto min-w-[190px] max-[980px]:min-w-[170px] max-w-[280px] max-[980px]:max-w-[210px] max-[760px]:min-w-0 max-[760px]:flex-1 h-[26px] px-2.5 font-mono text-[11px] text-ink-200 bg-surface-750 border border-chrome-line-2 rounded-lg transition-[box-shadow,border-color] duration-140 hover:border-chrome-line-3 focus-visible:outline-none focus-visible:border-accent-500/60 focus-visible:shadow-focus-amber disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer"
+          className="w-auto min-w-[190px] max-[980px]:min-w-[170px] max-w-[280px] max-[980px]:max-w-[210px] max-[760px]:min-w-0 max-[760px]:flex-1 h-[26px] px-2.5 font-mono text-[11px] text-ink-200 bg-surface-750 border border-chrome-line-2 rounded-lg transition-[box-shadow,border-color] duration-140 hover:border-chrome-line-3 focus-visible:outline-none focus-visible:border-ink-100 focus-visible:shadow-focus-amber disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer"
         >
           {models.length === 0 ? (
             <option value="">No local models</option>
