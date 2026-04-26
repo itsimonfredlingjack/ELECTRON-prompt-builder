@@ -158,7 +158,7 @@ describe('ResultPanel', () => {
 
     expect(container.textContent).toContain('Start Ollama to draft locally.')
     expect(container.textContent).toContain('ollama serve')
-    expect(container.textContent).toContain('use Retry beside Sharpen')
+    expect(container.textContent).toContain('click Retry connection')
 
     await act(async () => {
       root.unmount()

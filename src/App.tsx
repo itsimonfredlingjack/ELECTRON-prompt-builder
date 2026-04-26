@@ -24,10 +24,7 @@ function App() {
         className="flex items-center justify-between px-4 text-[10.5px] tracking-[0.06em] uppercase text-ink-400/80 bg-surface-850 border-t border-chrome-line font-mono max-[820px]:hidden"
         aria-label="Workspace status"
       >
-        <span className="flex items-center gap-2">
-          <span className="w-1 h-1 rounded-full bg-accent-500/60" aria-hidden="true" />
-          local workspace
-        </span>
+        <span>local workspace</span>
         <span>no cloud request sent</span>
       </footer>
     </div>

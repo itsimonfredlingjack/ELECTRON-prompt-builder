@@ -1,5 +1,5 @@
 export {
-  Sparkles,
+  PenTool,
   WifiOff,
   RefreshCw,
   RotateCcw,
@@ -10,6 +10,8 @@ export {
   X,
   Plus,
   ChevronDown,
+  Command,
+  CornerDownLeft,
   Image as ImageIcon,
   Square,
   Loader2,

@@ -7,9 +7,11 @@ import { writeClipboardText } from '@/lib/clipboard'
 import {
   AlertTriangle,
   Check,
+  Command,
   Copy,
+  CornerDownLeft,
+  PenTool,
   RotateCcw,
-  Sparkles,
   Trash2,
   WifiOff,
 } from '@/lib/icons'
@@ -223,12 +225,12 @@ function DraftHint({ error }: DraftHintProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={defaultSpring}
     >
-      <span className="empty-glyph"><Sparkles size={26} strokeWidth={1.7} /></span>
+      <span className="empty-glyph"><PenTool size={24} strokeWidth={1.6} /></span>
       <div className="empty-title">Sharpen a brief to begin.</div>
       <div className="empty-sub">Write a brief on the left, then sharpen. Nothing leaves this machine.</div>
       <div className="empty-row">
-        <span className="kbd kbd--accent">⌘</span>
-        <span className="kbd kbd--accent">↵</span>
+        <span className="kbd kbd--accent"><Command size={11} strokeWidth={2.25} /></span>
+        <span className="kbd kbd--accent"><CornerDownLeft size={11} strokeWidth={2.25} /></span>
         <span>sharpen</span>
       </div>
     </motion.div>
@@ -248,7 +250,7 @@ function OfflineRecovery() {
       <span className="fullstate-icon"><WifiOff size={26} strokeWidth={1.7} /></span>
       <div className="fullstate-title">Ollama is sleeping.</div>
       <div className="fullstate-sub">
-        Start Ollama to draft locally. Needs <code>127.0.0.1:11434</code>. Start the daemon, then use Retry beside Sharpen.
+        Start Ollama to draft locally. Needs <code>127.0.0.1:11434</code>. Start the daemon, then click Retry connection.
       </div>
       <div className="fullstate-code"><span>$</span> ollama serve</div>
       <div className="fullstate-note">no cloud fallback · by design</div>

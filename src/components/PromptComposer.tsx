@@ -8,7 +8,7 @@ import {
   STRATEGY_OPTIONS,
   TARGET_OPTIONS,
 } from '@/lib/promptWorkbench'
-import { X } from '@/lib/icons'
+import { ChevronDown, Command, CornerDownLeft, X } from '@/lib/icons'
 import { panelSpring, pressSpring, defaultSpring } from '@/lib/springs'
 
 const PROMPT_TEXTAREA_ID = 'prompt-goal'
@@ -69,11 +69,11 @@ export function PromptComposer() {
 
   const disabledReason = useMemo(() => {
     if (isBusy || canGenerate) return null
-    if (!inputText.trim()) return 'Add your raw intent to enable building.'
-    if (!runtimeSnapshot?.daemonReachable) return 'Start Ollama or retry connection.'
+    if (runtimeSnapshot?.daemonReachable === false) return 'Start Ollama, then click Retry connection.'
     if (!selectedModelId) return 'Choose a model first.'
     if (!selectedModelInstalled) return 'Install the selected model in Ollama.'
     if (!selectedModelReady) return 'Wait for the selected model to be ready.'
+    if (!inputText.trim()) return 'Add your raw intent to enable building.'
     return 'Prompt building is temporarily unavailable.'
   }, [
     canGenerate,
@@ -175,6 +175,14 @@ export function PromptComposer() {
             >
               <span>Advanced</span>
               <span className="advanced-summary">More controls</span>
+              <motion.span
+                className="advanced-chevron"
+                animate={{ rotate: activeAdvancedPane !== null ? 180 : 0 }}
+                transition={defaultSpring}
+                aria-hidden="true"
+              >
+                <ChevronDown size={14} strokeWidth={2.25} />
+              </motion.span>
             </button>
           </div>
 
@@ -430,7 +438,12 @@ export function PromptComposer() {
               aria-label="Build Prompt"
             >
               {isBusy ? `Stop ${generationState}` : 'Sharpen'}
-              {!isBusy && canGenerate && <span className="kbd kbd--dark">⌘↵</span>}
+              {!isBusy && canGenerate && (
+                <span className="kbd kbd--dark">
+                  <Command size={10} strokeWidth={2.5} />
+                  <CornerDownLeft size={10} strokeWidth={2.5} />
+                </span>
+              )}
             </motion.button>
           )}
         </div>

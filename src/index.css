@@ -13,10 +13,10 @@
   --surface-650: #4a4032;
   --surface-600: #564a3a;
 
-  --chrome-line: rgba(255, 248, 232, 0.07);
-  --chrome-line-2: rgba(255, 248, 232, 0.12);
-  --chrome-line-3: rgba(255, 248, 232, 0.20);
-  --chrome-inner: rgba(255, 248, 232, 0.06);
+  --chrome-line: rgba(255, 248, 232, 0.08);
+  --chrome-line-2: rgba(255, 248, 232, 0.18);
+  --chrome-line-3: rgba(255, 248, 232, 0.28);
+  --chrome-inner: rgba(255, 248, 232, 0.07);
   --chrome-glass: var(--surface-850);
 
   --ink-100: #f4ede0;
@@ -307,8 +307,10 @@
 }
 
 .draft {
-  background: var(--surface-850);
-  box-shadow: inset 0 1px 0 var(--chrome-inner);
+  background: var(--surface-900);
+  box-shadow:
+    inset 1px 0 0 rgba(0, 0, 0, 0.30),
+    inset 0 1px 0 var(--chrome-inner);
 }
 
 .comp-head,
@@ -406,21 +408,22 @@
 
 .fld-label .fld-hint {
   margin-left: 0;
-  color: var(--ink-500);
-  font-size: 11px;
+  color: var(--ink-400);
+  font-size: 10.5px;
   font-style: normal;
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .fld-hint {
   margin-left: auto;
-  color: var(--ink-500);
-  font-family: var(--font-ui);
-  font-size: 11px;
-  font-style: italic;
+  color: var(--ink-400);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-style: normal;
   font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  font-variant-numeric: tabular-nums;
 }
 
 .comp-input,
@@ -613,28 +616,19 @@
   text-transform: none;
 }
 
-.advanced-toggle::after {
-  content: "›";
+.advanced-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 16px;
   height: 16px;
-  display: grid;
-  place-items: center;
-  color: currentColor;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  font-size: 16px;
-  line-height: 1;
-  transform: rotate(0deg);
-  transition: transform var(--dur-fast) var(--ease-soft);
+  color: var(--ink-400);
+  margin-left: 4px;
+  flex-shrink: 0;
 }
 
-.advanced-panel.is-open .advanced-toggle::after {
-  content: "›";
-  color: var(--accent-500);
-  border: 0;
-  background: transparent;
-  transform: rotate(90deg);
+.advanced-panel.is-open .advanced-chevron {
+  color: var(--accent-400);
 }
 
 .advanced-summary {
@@ -687,9 +681,11 @@
 
 .advanced-tabs button.is-active {
   color: var(--ink-100);
-  background: var(--surface-600);
-  border-color: var(--chrome-line-3);
-  box-shadow: var(--shadow-1);
+  background: var(--surface-700);
+  border-color: var(--chrome-line-2);
+  box-shadow:
+    inset 0 -1px 0 rgba(212, 165, 116, 0.45),
+    inset 0 1px 0 var(--chrome-inner);
 }
 
 .advanced-content {
@@ -866,18 +862,19 @@
 
 .draft-stat .n {
   color: var(--ink-100);
-  font-family: var(--font-display);
-  font-size: var(--fs-lg);
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .draft-stat .l {
   color: var(--ink-400);
-  font-family: var(--font-ui);
-  font-size: 12px;
-  letter-spacing: -0.005em;
-  text-transform: none;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .draft-body {
@@ -887,11 +884,11 @@
   flex-direction: column;
   gap: 16px;
   overflow: auto;
-  padding: 32px clamp(40px, 6vw, 64px);
+  padding: 28px clamp(32px, 5vw, 56px);
   color: var(--ink-100);
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-  line-height: 1.72;
+  font-family: var(--font-ui);
+  font-size: 14.5px;
+  line-height: 1.62;
 }
 
 .ui-output-editor {
@@ -903,9 +900,10 @@
   border: 0;
   box-shadow: none;
   resize: none;
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-  line-height: 1.7;
+  font-family: var(--font-ui);
+  font-size: 14.5px;
+  line-height: 1.62;
+  letter-spacing: -0.005em;
 }
 
 .ui-output-editor:hover:not(:disabled),
@@ -1129,10 +1127,14 @@
 
 .draft-local {
   min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--ink-400);
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .draft-local-sep {
@@ -1415,10 +1417,13 @@
 }
 
 .kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   min-width: 20px;
   height: 20px;
-  justify-content: center;
-  padding: 0 6px;
+  padding: 0 5px;
   color: var(--ink-200);
   background: var(--surface-700);
   border: 1px solid var(--chrome-line-2);
@@ -1428,6 +1433,7 @@
   font-size: var(--fs-xs);
   font-weight: 500;
   letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .kbd--accent {

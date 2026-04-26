@@ -106,7 +106,7 @@ export function TitleBar() {
           <Mark />
         </motion.div>
         <span className="text-ink-100 font-display text-[14px] font-medium tracking-[-0.01em]">
-          lazy prompter<span className="text-accent-400">.</span>
+          lazy prompter
         </span>
         {showRuntimeMeta && (
           <>
