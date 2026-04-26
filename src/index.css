@@ -5,26 +5,31 @@
 :root {
   color-scheme: dark;
 
-  --surface-900: #0a0806;
-  --surface-850: #1f1a13;
-  --surface-800: #29231a;
-  --surface-750: #322b21;
-  --surface-700: #3d3528;
-  --surface-650: #4a4032;
-  --surface-600: #564a3a;
+  /* Neutral-dark canvas. Warmth comes from amber accent only — surfaces stay cool. */
+  --surface-900: #0a0b0e;
+  --surface-850: #14161b;
+  --surface-800: #1a1d23;
+  --surface-750: #20232a;
+  --surface-700: #282c34;
+  --surface-650: #343943;
+  --surface-600: #3f4552;
+  /* Glass tints for floating panels — solid-feel with light translucency for depth */
+  --glass-comp: rgba(28, 31, 40, 0.86);
+  --glass-draft: rgba(20, 22, 28, 0.92);
+  --glass-overlay: rgba(36, 40, 50, 0.92);
 
-  --chrome-line: rgba(255, 248, 232, 0.08);
-  --chrome-line-2: rgba(255, 248, 232, 0.18);
-  --chrome-line-3: rgba(255, 248, 232, 0.28);
-  --chrome-inner: rgba(255, 248, 232, 0.07);
+  --chrome-line: rgba(255, 255, 255, 0.06);
+  --chrome-line-2: rgba(255, 255, 255, 0.13);
+  --chrome-line-3: rgba(255, 255, 255, 0.22);
+  --chrome-inner: rgba(255, 255, 255, 0.07);
   --chrome-glass: var(--surface-850);
 
-  --ink-100: #f4ede0;
-  --ink-200: #d6cfc1;
-  --ink-300: #9b9388;
-  --ink-400: #6b6660;
-  --ink-500: #45413c;
-  --ink-600: #2a2419;
+  --ink-100: #f0f1f5;
+  --ink-200: #d4d6dd;
+  --ink-300: #9ea1ac;
+  --ink-400: #70737d;
+  --ink-500: #4a4d56;
+  --ink-600: #282a31;
 
   --accent-100: #f5e6cf;
   --accent-300: #e6c79a;
@@ -99,9 +104,9 @@
   --dur: 240ms;
   --dur-slow: 380ms;
 
-  --input-fill: var(--surface-750);
+  --input-fill: rgba(6, 7, 10, 0.65);
   --input-tint: none;
-  --input-shadow: inset 0 0 0 1px var(--chrome-line-2);
+  --input-shadow: inset 0 1px 0 var(--chrome-inner), inset 0 0 0 1px rgba(0, 0, 0, 0.22);
   --panel-shadow: none;
 }
 
@@ -265,9 +270,9 @@
   display: grid;
   grid-template-columns: clamp(420px, 38vw, 520px) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
-  gap: 1px;
+  gap: 12px;
   overflow: hidden;
-  padding: 0;
+  padding: 12px;
   background: var(--surface-900);
 }
 
@@ -280,37 +285,29 @@
 .draft {
   position: relative;
   z-index: 1;
-}
-
-.comp,
-.draft {
   min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  position: relative;
-  z-index: 1;
   width: 100%;
   height: 100%;
-  border: 0;
-  border-radius: 0;
+  border: 1px solid var(--chrome-line-2);
+  border-radius: 14px;
   overflow: hidden;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  box-shadow: none;
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  box-shadow:
+    inset 0 1px 0 var(--chrome-inner),
+    0 18px 48px -24px rgba(0, 0, 0, 0.65),
+    0 2px 6px rgba(0, 0, 0, 0.20);
 }
 
 .comp {
-  background: var(--surface-850);
-  border-right: 1px solid var(--chrome-line-2);
-  box-shadow: inset 0 1px 0 var(--chrome-inner);
+  background: var(--glass-comp);
 }
 
 .draft {
-  background: var(--surface-900);
-  box-shadow:
-    inset 1px 0 0 rgba(0, 0, 0, 0.30),
-    inset 0 1px 0 var(--chrome-inner);
+  background: var(--glass-draft);
 }
 
 .comp-head,
@@ -322,18 +319,18 @@
 
 .comp-head {
   justify-content: space-between;
-  min-height: 36px;
-  padding: 0 16px;
-  background: linear-gradient(180deg, rgba(255, 248, 232, 0.025), transparent), var(--surface-850);
-  border-bottom: 1px solid var(--chrome-line);
+  min-height: 38px;
+  padding: 0 18px;
+  background: transparent;
+  border-bottom: 1px solid var(--chrome-line-2);
 }
 
 .draft-head {
   gap: 12px;
-  min-height: 36px;
-  padding: 0 16px;
-  background: linear-gradient(180deg, rgba(255, 248, 232, 0.03), transparent), var(--surface-850);
-  border-bottom: 1px solid var(--chrome-line);
+  min-height: 38px;
+  padding: 0 18px;
+  background: transparent;
+  border-bottom: 1px solid var(--chrome-line-2);
 }
 
 .comp-title,
@@ -448,13 +445,13 @@
 .comp-ta {
   width: 100%;
   color: var(--ink-100);
-  background: var(--surface-750);
+  background: rgba(8, 9, 12, 0.55);
   border: 1px solid var(--chrome-line-2);
   border-radius: var(--r-3);
   outline: none;
   box-shadow:
     inset 0 1px 0 var(--chrome-inner),
-    0 1px 0 rgba(0, 0, 0, 0.18);
+    inset 0 0 0 1px rgba(0, 0, 0, 0.20);
   resize: none;
   padding: 14px 16px;
   font-family: var(--font-ui);
@@ -467,12 +464,12 @@
 }
 
 .comp-ta:hover:not(:disabled) {
-  background: var(--surface-700);
+  background: rgba(12, 14, 18, 0.60);
   border-color: var(--chrome-line-3);
 }
 
 .comp-ta:focus {
-  background: var(--surface-750);
+  background: rgba(8, 9, 12, 0.70);
   border-color: rgba(212, 165, 116, 0.55);
   box-shadow:
     inset 0 1px 0 var(--chrome-inner),

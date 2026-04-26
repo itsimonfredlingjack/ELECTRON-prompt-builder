@@ -41,8 +41,15 @@ export function installDevElectronShim() {
       if (!tagsRes.ok) {
         return offlineSnapshot(request.selectedModelId)
       }
-      const payload = (await tagsRes.json()) as { models?: Array<{ name: string }> }
-      const models = (payload.models ?? []).map((m) => ({ id: m.name }))
+      const payload = (await tagsRes.json()) as {
+        models?: Array<{ name: string; size?: number }>
+      }
+      // Sort by size ascending so the lightest model is the dev-default —
+      // less lag during design iteration. User can override via the selector.
+      const sortedModels = (payload.models ?? [])
+        .slice()
+        .sort((a, b) => (a.size ?? Number.MAX_SAFE_INTEGER) - (b.size ?? Number.MAX_SAFE_INTEGER))
+      const models = sortedModels.map((m) => ({ id: m.name }))
       const selectedModelId = request.selectedModelId ?? models[0]?.id ?? null
       const installed = !!selectedModelId && models.some((m) => m.id === selectedModelId)
       return {

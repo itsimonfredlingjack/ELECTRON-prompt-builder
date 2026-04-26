@@ -13,7 +13,7 @@ function App() {
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={panelSpring}
-        className="grid grid-cols-[minmax(0,1fr)_minmax(320px,460px)] max-[720px]:grid-cols-1 max-[720px]:overflow-auto overflow-hidden min-h-0 bg-surface-900"
+        className="grid grid-cols-[minmax(0,1fr)_minmax(320px,460px)] max-[720px]:grid-cols-1 max-[720px]:overflow-auto overflow-hidden min-h-0 gap-3 p-3 bg-surface-900"
         aria-label="Lazy Prompter workspace"
       >
         <PromptComposer />
