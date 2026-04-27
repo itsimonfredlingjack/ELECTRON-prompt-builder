@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useComposerActions, useComposerState } from '@/contexts/composerContext'
 import { useGenerationControls, useGenerationState } from '@/contexts/generationContext'
 import { useRuntimeActions, useRuntimeState } from '@/contexts/runtimeContext'
@@ -7,6 +8,8 @@ import {
   STRATEGY_OPTIONS,
   TARGET_OPTIONS,
 } from '@/lib/promptWorkbench'
+import { ChevronDown, Command, CornerDownLeft, X } from '@/lib/icons'
+import { panelSpring, pressSpring, defaultSpring } from '@/lib/springs'
 
 const PROMPT_TEXTAREA_ID = 'prompt-goal'
 type AdvancedPane = 'constraints' | 'settings' | 'reference'
@@ -66,11 +69,11 @@ export function PromptComposer() {
 
   const disabledReason = useMemo(() => {
     if (isBusy || canGenerate) return null
-    if (!inputText.trim()) return 'Add your raw intent to enable building.'
-    if (!runtimeSnapshot?.daemonReachable) return 'Start Ollama or retry connection.'
+    if (runtimeSnapshot?.daemonReachable === false) return 'Start Ollama, then click Retry connection.'
     if (!selectedModelId) return 'Choose a model first.'
     if (!selectedModelInstalled) return 'Install the selected model in Ollama.'
     if (!selectedModelReady) return 'Wait for the selected model to be ready.'
+    if (!inputText.trim()) return null
     return 'Prompt building is temporarily unavailable.'
   }, [
     canGenerate,
@@ -81,6 +84,19 @@ export function PromptComposer() {
     selectedModelInstalled,
     selectedModelReady,
   ])
+
+  /**
+   * Sharpen label tells users *why* it's disabled so the button itself reads
+   * as the affordance instead of needing a satellite hint line.
+   */
+  const sharpenLabel = useMemo(() => {
+    if (isBusy) return `Stop ${generationState}`
+    if (canGenerate) return 'Sharpen'
+    if (!inputText.trim()) return 'Add intent to sharpen'
+    return 'Sharpen'
+  }, [canGenerate, generationState, inputText, isBusy])
+
+  const sharpenIsStub = !isBusy && !canGenerate && !inputText.trim()
 
   const handleConstraintSubmit = () => {
     if (!constraintDraft.trim()) return
@@ -110,7 +126,7 @@ export function PromptComposer() {
   return (
     <section className="comp" aria-label="Prompt brief">
       <header className="comp-head">
-        <span className="comp-title">Brief</span>
+        <span className={`comp-title ${hasComposerContent ? 'is-active' : 'is-quiet'}`}>Brief</span>
         <button
           type="button"
           className="btn btn--ghost btn--sm"
@@ -133,8 +149,10 @@ export function PromptComposer() {
       <div className="comp-body slim-scroll">
         <section>
           <div className="fld-label">
-            <label htmlFor={PROMPT_TEXTAREA_ID}>Raw intent</label>
-            <span className="fld-hint">{inputText.trim().length} chars</span>
+            <label htmlFor={PROMPT_TEXTAREA_ID}>Intent</label>
+            {inputText.trim().length > 0 && (
+              <span className="fld-hint">{inputText.trim().length} chars</span>
+            )}
           </div>
           <textarea
             id={PROMPT_TEXTAREA_ID}
@@ -150,6 +168,9 @@ export function PromptComposer() {
         <section>
           <div className="fld-label">
             <label htmlFor="brief-context">Context</label>
+            {contextText.trim().length > 0 && (
+              <span className="fld-hint">{contextText.trim().length} chars</span>
+            )}
           </div>
           <textarea
             id="brief-context"
@@ -172,11 +193,29 @@ export function PromptComposer() {
             >
               <span>Advanced</span>
               <span className="advanced-summary">More controls</span>
+              <motion.span
+                className="advanced-chevron"
+                animate={{ rotate: activeAdvancedPane !== null ? 180 : 0 }}
+                transition={defaultSpring}
+                aria-hidden="true"
+              >
+                <ChevronDown size={14} strokeWidth={2.25} />
+              </motion.span>
             </button>
           </div>
 
-          {activeAdvancedPane && (
-            <div id="advanced-panel-body" className="advanced-shell">
+          <AnimatePresence initial={false}>
+            {activeAdvancedPane && (
+              <motion.div
+                key="advanced-shell"
+                id="advanced-panel-body"
+                className="advanced-shell"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={panelSpring}
+                style={{ overflow: 'hidden' }}
+              >
               <div className="advanced-tabs" role="tablist" aria-label="Advanced control groups">
                 <AdvancedTab
                   id="advanced-tab-constraints"
@@ -268,19 +307,26 @@ export function PromptComposer() {
                     </div>
 
                     <div className="constraint-chips constraint-chips--compact">
-                      {extraConstraints.length > 0 ? extraConstraints.map((chip) => (
-                        <button
-                          key={chip}
-                          type="button"
-                          onClick={() => removeExtraConstraint(chip)}
-                          disabled={isBusy}
-                          className="chip chip--accent"
-                        >
-                          {chip}<span className="x">×</span>
-                        </button>
-                      )) : (
-                        <p className="field-help">No pinned rules.</p>
-                      )}
+                      <AnimatePresence initial={false}>
+                        {extraConstraints.length > 0 ? extraConstraints.map((chip) => (
+                          <motion.button
+                            key={chip}
+                            type="button"
+                            layout
+                            initial={{ opacity: 0, scale: 0.85 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.7 }}
+                            transition={defaultSpring}
+                            onClick={() => removeExtraConstraint(chip)}
+                            disabled={isBusy}
+                            className="chip chip--accent"
+                          >
+                            {chip}<X className="x" size={11} strokeWidth={2.5} />
+                          </motion.button>
+                        )) : (
+                          <p className="field-help">No pinned rules.</p>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </>
                 )}
@@ -334,7 +380,9 @@ export function PromptComposer() {
                             <span>{imageAttachment.name}</span>
                             <small>{uploadStatus} · {formatBytes(imageAttachment.size)}</small>
                           </div>
-                          <button type="button" className="icn-btn" onClick={clearAttachment} disabled={isBusy} aria-label="Remove image attachment">×</button>
+                          <button type="button" className="icn-btn" onClick={clearAttachment} disabled={isBusy} aria-label="Remove image attachment">
+                            <X size={13} strokeWidth={2.25} />
+                          </button>
                         </div>
                       ) : (
                         <button
@@ -369,8 +417,9 @@ export function PromptComposer() {
                   </>
                 )}
               </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </section>
       </div>
 
@@ -385,32 +434,41 @@ export function PromptComposer() {
 
         <div className="comp-foot-actions">
           {isRuntimeBlocked ? (
-            <button
+            <motion.button
               type="button"
               onClick={() => void refreshRuntime()}
               disabled={runtimeRefreshing}
+              whileTap={{ scale: 0.97 }}
+              transition={pressSpring}
               className="btn btn--primary"
               aria-label="Retry local runtime"
             >
               {runtimeRefreshing ? 'Retrying' : 'Retry connection'}
-            </button>
+            </motion.button>
           ) : (
-            <button
+            <motion.button
               type="button"
               onClick={isBusy ? cancelGeneration : () => void startGeneration()}
               disabled={!isBusy && !canGenerate}
-              className="btn btn--primary"
+              whileTap={{ scale: 0.97 }}
+              transition={pressSpring}
+              className={`btn btn--primary ${sharpenIsStub ? 'btn--primary-stub' : ''}`}
               aria-label="Build Prompt"
             >
-              {isBusy ? `Stop ${generationState}` : 'Sharpen'}
-              {!isBusy && canGenerate && <span className="kbd kbd--dark">⌘↵</span>}
-            </button>
+              {sharpenLabel}
+              {!isBusy && canGenerate && (
+                <span className="kbd kbd--dark">
+                  <Command size={10} strokeWidth={2.5} />
+                  <CornerDownLeft size={10} strokeWidth={2.5} />
+                </span>
+              )}
+            </motion.button>
           )}
         </div>
 
-        <p className={`ui-helper ${disabledReason ? 'is-visible' : ''}`}>
-          {disabledReason ?? '⌘↵ sharpen · esc cancel'}
-        </p>
+        {disabledReason && (
+          <p className="ui-helper is-visible">{disabledReason}</p>
+        )}
       </footer>
     </section>
   )

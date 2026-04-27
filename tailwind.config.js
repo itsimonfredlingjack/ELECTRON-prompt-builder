@@ -56,11 +56,13 @@ export default {
         base: ['0.875rem', { lineHeight: '1.5' }],
       },
       boxShadow: {
-        'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.18)',
-        'DEFAULT': '0 1px 3px 0 rgba(0, 0, 0, 0.24), 0 1px 2px 0 rgba(0, 0, 0, 0.18)',
-        'panel': '0 24px 56px -16px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(232, 218, 196, 0.04)',
-        'inner-soft': 'inset 0 1px 0 rgba(255, 248, 232, 0.04)',
-        'glow-accent': '0 0 24px rgba(220, 181, 120, 0.18)',
+        'sm': '0 1px 2px 0 rgba(40, 42, 48, 0.04)',
+        'DEFAULT': '0 1px 2px 0 rgba(40, 42, 48, 0.06), 0 1px 3px 0 rgba(40, 42, 48, 0.04)',
+        'panel': '0 1px 2px rgba(40, 42, 48, 0.04), 0 8px 24px -12px rgba(40, 42, 48, 0.10)',
+        'inner-soft': 'inset 0 1px 0 rgba(255, 255, 255, 0.65)',
+        'glow-accent': '0 0 16px rgba(31, 32, 35, 0.10)',
+        'glow-accent-soft': '0 0 12px rgba(31, 32, 35, 0.06)',
+        'focus-amber': '0 0 0 1px rgba(31, 32, 35, 0.55), 0 0 0 3px rgba(31, 32, 35, 0.10)',
         'none': 'none',
       },
       transitionDuration: {

@@ -8,6 +8,7 @@ const useGenerationStateMock = vi.fn()
 const useGenerationControlsMock = vi.fn()
 const useRuntimeStateMock = vi.fn()
 const useRuntimeActionsMock = vi.fn()
+const useComposerActionsMock = vi.fn()
 
 vi.mock('@/contexts/generationContext', () => ({
   useGenerationState: () => useGenerationStateMock(),
@@ -17,6 +18,10 @@ vi.mock('@/contexts/generationContext', () => ({
 vi.mock('@/contexts/runtimeContext', () => ({
   useRuntimeState: () => useRuntimeStateMock(),
   useRuntimeActions: () => useRuntimeActionsMock(),
+}))
+
+vi.mock('@/contexts/composerContext', () => ({
+  useComposerActions: () => useComposerActionsMock(),
 }))
 
 import { ResultPanel } from '@/components/ResultPanel'
@@ -97,6 +102,9 @@ async function renderResultPanel({
   useRuntimeActionsMock.mockReturnValue({
     refreshRuntime,
   })
+  useComposerActionsMock.mockReturnValue({
+    setInputText: vi.fn(),
+  })
 
   const container = document.createElement('div')
   const root = createRoot(container)
@@ -137,9 +145,65 @@ describe('ResultPanel', () => {
       canGenerate: false,
     })
 
-    expect(container.textContent).toContain('Draft is empty')
-    expect(container.textContent).toContain('Write a brief on the left, then sharpen.')
-    expect(container.textContent).toContain('sharpen')
+    expect(container.textContent).toContain('Write a brief, then sharpen')
+    expect(container.textContent).toContain('Or start from one of these')
+    expect(container.textContent).toContain('README intro')
+
+    await act(async () => {
+      root.unmount()
+    })
+  })
+
+  it('hides the status pill and footer actions when idle', async () => {
+    const { container, root } = await renderResultPanel({
+      value: '',
+      sourceValue: '',
+      isStreaming: false,
+      canGenerate: false,
+    })
+
+    // Idle state: no status pill should render at all
+    expect(container.querySelector('.draft-head .badge')).toBeNull()
+    expect(container.textContent).not.toContain('streaming')
+    expect(container.textContent).not.toContain('sharpened')
+    // Footer actions are also suppressed in idle to avoid three faded buttons
+    expect(container.querySelector('.draft-actions')).toBeNull()
+
+    await act(async () => {
+      root.unmount()
+    })
+  })
+
+  it('shows the streaming status pill and stream track while streaming', async () => {
+    const { container, root } = await renderResultPanel({
+      value: '',
+      sourceValue: 'turn this into a stricter prompt',
+      isStreaming: true,
+    })
+
+    const badge = container.querySelector('.draft-head .badge')
+    expect(badge).toBeTruthy()
+    expect(badge?.textContent).toContain('streaming')
+    expect(container.querySelector('.stream-track')).toBeTruthy()
+    // Footer actions render so the user can stop or copy a partial draft
+    expect(container.querySelector('.draft-actions')).toBeTruthy()
+
+    await act(async () => {
+      root.unmount()
+    })
+  })
+
+  it('shows the sharpened status pill once a draft exists and streaming has stopped', async () => {
+    const { container, root } = await renderResultPanel({
+      value: 'Write a stricter prompt for debugging a flaky React test.',
+      sourceValue: 'need a better prompt for a flaky react test',
+      isStreaming: false,
+    })
+
+    const badge = container.querySelector('.draft-head .badge')
+    expect(badge).toBeTruthy()
+    expect(badge?.textContent).toContain('sharpened')
+    expect(container.querySelector('.stream-track')).toBeNull()
 
     await act(async () => {
       root.unmount()
@@ -158,7 +222,7 @@ describe('ResultPanel', () => {
 
     expect(container.textContent).toContain('Start Ollama to draft locally.')
     expect(container.textContent).toContain('ollama serve')
-    expect(container.textContent).toContain('use Retry beside Sharpen')
+    expect(container.textContent).toContain('click Retry connection')
 
     await act(async () => {
       root.unmount()
@@ -249,6 +313,9 @@ describe('ResultPanel', () => {
     })
     useRuntimeActionsMock.mockReturnValue({
       refreshRuntime: vi.fn().mockResolvedValue(undefined),
+    })
+    useComposerActionsMock.mockReturnValue({
+      setInputText: vi.fn(),
     })
 
     const container = document.createElement('div')

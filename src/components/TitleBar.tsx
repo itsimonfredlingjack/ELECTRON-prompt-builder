@@ -1,5 +1,43 @@
 import { type CSSProperties } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useRuntimeActions, useRuntimeState } from '@/contexts/runtimeContext'
+import { RefreshCw } from '@/lib/icons'
+import { defaultSpring, pressSpring } from '@/lib/springs'
+
+type StatusTone = 'is-checking' | 'is-offline' | 'is-ready' | 'is-warming' | 'is-idle'
+
+const statusToneStyles: Record<StatusTone, { dot: string; text: string; ring: string; pulse: string }> = {
+  'is-checking': {
+    dot: 'bg-warn shadow-[0_0_0_1px_rgba(194,105,31,0.28),0_0_4px_0_rgba(194,105,31,0.30)]',
+    text: 'text-warn',
+    ring: 'border-warn/30 bg-warn/[0.06]',
+    pulse: 'animate-[sleepy-breathe_3s_ease-in-out_infinite]',
+  },
+  'is-offline': {
+    dot: 'bg-err shadow-[0_0_0_1px_rgba(184,50,62,0.30),0_0_4px_0_rgba(184,50,62,0.30)]',
+    text: 'text-err',
+    ring: 'border-err/30 bg-err/[0.06]',
+    pulse: 'animate-[sleepy-breathe_2.4s_ease-in-out_infinite]',
+  },
+  'is-ready': {
+    dot: 'bg-ink-100 shadow-[0_0_0_1px_rgba(31,32,35,0.20),0_0_4px_0_rgba(31,32,35,0.12)]',
+    text: 'text-ink-100',
+    ring: 'border-chrome-line-3 bg-surface-650',
+    pulse: 'animate-[sleepy-breathe_5s_ease-in-out_infinite]',
+  },
+  'is-warming': {
+    dot: 'bg-warn shadow-[0_0_0_1px_rgba(194,105,31,0.28),0_0_4px_0_rgba(194,105,31,0.25)]',
+    text: 'text-warn',
+    ring: 'border-warn/25 bg-warn/[0.05]',
+    pulse: 'animate-[sleepy-breathe_4s_ease-in-out_infinite]',
+  },
+  'is-idle': {
+    dot: 'bg-ink-400 shadow-[0_0_0_1px_var(--chrome-line-2),0_0_3px_0_var(--chrome-line)]',
+    text: 'text-ink-300',
+    ring: 'border-chrome-line-2 bg-surface-800',
+    pulse: 'animate-[sleepy-breathe_6s_ease-in-out_infinite]',
+  },
+}
 
 export function TitleBar() {
   const {
@@ -13,7 +51,7 @@ export function TitleBar() {
 
   const models = runtimeSnapshot?.modelListAvailable ? runtimeSnapshot.models : []
   const selectorValue = selectedModelId ?? models[0]?.id ?? ''
-  const statusTone = runtimeRefreshing
+  const statusTone: StatusTone = runtimeRefreshing
     ? 'is-checking'
     : !runtimeSnapshot?.daemonReachable
       ? 'is-offline'
@@ -48,49 +86,52 @@ export function TitleBar() {
         ? 'warming'
         : 'select model'
 
-  const baseBadge = "inline-flex items-center flex-none whitespace-nowrap gap-1.5 min-h-[22px] px-2 py-0.5 font-sans text-[11.5px] font-medium tracking-tight rounded-pill border"
-  const badgeClasses = statusTone === 'is-offline'
-    ? `${baseBadge} text-err bg-err/10 border-err/25`
-    : statusTone === 'is-ready'
-      ? `${baseBadge} text-accent-500 bg-accent-500/10 border-accent-500/20`
-      : `${baseBadge} text-warn bg-warn/10 border-warn/25`
-
-  const baseDot = "w-[7px] h-[7px] flex-none rounded-full"
-  const dotClasses = runtimeRefreshing
-    ? `${baseDot} bg-warn shadow-[0_0_0_1px_rgba(216,184,90,0.20),0_0_8px_0px_var(--highlighter)] animate-[sleepy-breathe_4s_ease-in-out_infinite]`
-    : !runtimeSnapshot?.daemonReachable
-      ? `${baseDot} bg-err shadow-[0_0_0_1px_rgba(10,132,255,0.18),0_0_6px_0px_var(--accent-glow)] animate-[sleepy-breathe_2.4s_ease-in-out_infinite]`
-      : selectedModelReady
-        ? `${baseDot} bg-accent-500 shadow-[0_0_0_1px_rgba(10,132,255,0.18),0_0_6px_0px_var(--accent-glow)] animate-[sleepy-breathe_4s_ease-in-out_infinite]`
-        : selectedModelInstalled
-          ? `${baseDot} bg-warn shadow-[0_0_0_1px_rgba(216,184,90,0.20),0_0_8px_0px_var(--highlighter)] animate-[sleepy-breathe_4s_ease-in-out_infinite]`
-          : `${baseDot} bg-ink-500 shadow-[0_0_0_1px_var(--chrome-line-2),0_0_4px_0px_var(--chrome-line)] animate-[sleepy-breathe_6s_ease-in-out_infinite]`
+  const tone = statusToneStyles[statusTone]
 
   return (
     <header
-      className="min-w-0 grid grid-cols-[80px_minmax(260px,1fr)_minmax(360px,auto)] max-[980px]:grid-cols-[80px_minmax(180px,1fr)_auto] max-[820px]:grid-cols-1 items-center gap-5 max-[820px]:gap-2 px-3.5 max-[820px]:px-3 py-0 max-[820px]:py-2.5 border-b border-chrome-line bg-surface-900"
+      className="min-w-0 grid grid-cols-[80px_minmax(260px,1fr)_minmax(360px,auto)] max-[980px]:grid-cols-[80px_minmax(180px,1fr)_auto] max-[820px]:grid-cols-1 items-center gap-5 max-[820px]:gap-2 px-4 max-[820px]:px-3 py-0 max-[820px]:py-2.5 border-b border-chrome-line bg-surface-850/80 backdrop-blur-sm"
       style={{ WebkitAppRegion: 'drag' } as CSSProperties}
       onDoubleClick={() => window.electronAPI?.windowToggleMaximize()}
     >
       <div className="w-[80px] h-[1px] max-[820px]:hidden" aria-hidden="true" />
 
       <div className="min-w-0 flex items-center justify-center max-[820px]:justify-start max-[820px]:flex-wrap gap-2.5">
-        <Mark />
-        <span className="text-ink-100 font-display text-base font-medium tracking-tight">lazy prompter<span className="text-accent-500">.</span></span>
-        {showRuntimeMeta && (
+        <motion.div
+          initial={{ scale: 0.7, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ ...defaultSpring, delay: 0.05 }}
+          className="flex items-center"
+        >
+          <Mark />
+        </motion.div>
+        <span className="text-ink-100 font-display text-[14px] font-medium tracking-[-0.01em]">
+          lazy prompter
+        </span>
+        {showRuntimeMeta && !selectorValue && (
           <>
-            <span className="w-px h-3.5 flex-none bg-chrome-line-2" />
-            <span className="min-w-0 overflow-hidden text-ink-400 font-mono text-xs whitespace-nowrap text-ellipsis max-[980px]:hidden">{selectorValue || runtimeMeta}</span>
+            <span className="w-px h-3 flex-none bg-chrome-line" />
+            <span className="min-w-0 overflow-hidden text-ink-400 font-mono text-[11px] whitespace-nowrap text-ellipsis max-[980px]:hidden">{runtimeMeta}</span>
           </>
         )}
-        <span className="flex-none text-electric-400 opacity-80 min-w-0 overflow-hidden font-mono text-xs whitespace-nowrap text-ellipsis max-[980px]:hidden">local only</span>
       </div>
 
-      <div className="min-w-0 flex items-center justify-end max-[820px]:justify-start max-[820px]:flex-wrap gap-2.5" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
-        <div className={badgeClasses} aria-label={`Runtime status: ${statusLabel}`}>
-          <span className={dotClasses} />
-          <span>{statusContext}</span>
-        </div>
+      <div className="min-w-0 flex items-center justify-end max-[820px]:justify-start max-[820px]:flex-wrap gap-2" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.div
+            key={statusTone}
+            layout
+            initial={{ opacity: 0, y: -2 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 2 }}
+            transition={defaultSpring}
+            className={`inline-flex items-center flex-none whitespace-nowrap gap-2 h-[24px] px-2.5 rounded-pill border ${tone.ring}`}
+            aria-label={`Runtime status: ${statusLabel}`}
+          >
+            <span className={`w-[6px] h-[6px] flex-none rounded-full ${tone.dot} ${tone.pulse}`} />
+            <span className={`font-mono text-[10.5px] tracking-[0.06em] uppercase ${tone.text}`}>{statusContext}</span>
+          </motion.div>
+        </AnimatePresence>
 
         <label className="sr-only" htmlFor="model-selector">Model selector</label>
         <select
@@ -99,7 +140,7 @@ export function TitleBar() {
           value={selectorValue}
           onChange={(event) => selectModel(event.target.value || null)}
           disabled={runtimeRefreshing || models.length === 0}
-          className="w-auto min-w-[190px] max-[980px]:min-w-[170px] max-w-[280px] max-[980px]:max-w-[210px] max-[760px]:min-w-0 max-[760px]:flex-1 h-[30px] px-3 font-mono text-xs text-ink-200 bg-surface-700 border border-chrome-line rounded-md focus-visible:outline-2 focus-visible:outline-accent-500 focus-visible:outline-offset-2 disabled:opacity-45"
+          className="w-auto min-w-[190px] max-[980px]:min-w-[170px] max-w-[280px] max-[980px]:max-w-[210px] max-[760px]:min-w-0 max-[760px]:flex-1 h-[26px] px-2.5 font-mono text-[11px] text-ink-200 bg-surface-750 border border-chrome-line-2 rounded-lg transition-[box-shadow,border-color] duration-140 hover:border-chrome-line-3 focus-visible:outline-none focus-visible:border-ink-100 focus-visible:shadow-focus-amber disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer"
         >
           {models.length === 0 ? (
             <option value="">No local models</option>
@@ -112,14 +153,17 @@ export function TitleBar() {
           )}
         </select>
 
-        <button
+        <motion.button
           type="button"
           onClick={() => void refreshRuntime()}
-          className="inline-flex items-center justify-center flex-none min-h-[32px] px-4 rounded-md font-sans text-sm font-medium transition-colors duration-140 select-none text-ink-200 bg-transparent border border-chrome-line shadow-sm hover:text-ink-100 hover:bg-surface-800 disabled:opacity-45 h-6 px-2 text-xs"
+          whileTap={{ scale: 0.92 }}
+          transition={pressSpring}
+          className="inline-flex items-center justify-center flex-none w-[26px] h-[26px] rounded-lg text-ink-300 bg-transparent border border-chrome-line-2 transition-colors duration-140 hover:text-ink-100 hover:bg-surface-700 hover:border-chrome-line-3 disabled:opacity-45 focus-visible:outline-none focus-visible:shadow-focus-amber"
           aria-label="Refresh local runtime"
+          disabled={runtimeRefreshing}
         >
-          Refresh
-        </button>
+          <RefreshCw size={13} strokeWidth={2.25} className={runtimeRefreshing ? 'animate-spin' : ''} />
+        </motion.button>
       </div>
     </header>
   )
