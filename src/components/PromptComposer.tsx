@@ -73,7 +73,7 @@ export function PromptComposer() {
     if (!selectedModelId) return 'Choose a model first.'
     if (!selectedModelInstalled) return 'Install the selected model in Ollama.'
     if (!selectedModelReady) return 'Wait for the selected model to be ready.'
-    if (!inputText.trim()) return 'Add your raw intent to enable building.'
+    if (!inputText.trim()) return null
     return 'Prompt building is temporarily unavailable.'
   }, [
     canGenerate,
@@ -84,6 +84,19 @@ export function PromptComposer() {
     selectedModelInstalled,
     selectedModelReady,
   ])
+
+  /**
+   * Sharpen label tells users *why* it's disabled so the button itself reads
+   * as the affordance instead of needing a satellite hint line.
+   */
+  const sharpenLabel = useMemo(() => {
+    if (isBusy) return `Stop ${generationState}`
+    if (canGenerate) return 'Sharpen'
+    if (!inputText.trim()) return 'Add intent to sharpen'
+    return 'Sharpen'
+  }, [canGenerate, generationState, inputText, isBusy])
+
+  const sharpenIsStub = !isBusy && !canGenerate && !inputText.trim()
 
   const handleConstraintSubmit = () => {
     if (!constraintDraft.trim()) return
@@ -113,7 +126,7 @@ export function PromptComposer() {
   return (
     <section className="comp" aria-label="Prompt brief">
       <header className="comp-head">
-        <span className="comp-title">Brief</span>
+        <span className={`comp-title ${hasComposerContent ? 'is-active' : 'is-quiet'}`}>Brief</span>
         <button
           type="button"
           className="btn btn--ghost btn--sm"
@@ -136,8 +149,10 @@ export function PromptComposer() {
       <div className="comp-body slim-scroll">
         <section>
           <div className="fld-label">
-            <label htmlFor={PROMPT_TEXTAREA_ID}>Raw intent</label>
-            <span className="fld-hint">{inputText.trim().length} chars</span>
+            <label htmlFor={PROMPT_TEXTAREA_ID}>Intent</label>
+            {inputText.trim().length > 0 && (
+              <span className="fld-hint">{inputText.trim().length} chars</span>
+            )}
           </div>
           <textarea
             id={PROMPT_TEXTAREA_ID}
@@ -153,6 +168,9 @@ export function PromptComposer() {
         <section>
           <div className="fld-label">
             <label htmlFor="brief-context">Context</label>
+            {contextText.trim().length > 0 && (
+              <span className="fld-hint">{contextText.trim().length} chars</span>
+            )}
           </div>
           <textarea
             id="brief-context"
@@ -434,10 +452,10 @@ export function PromptComposer() {
               disabled={!isBusy && !canGenerate}
               whileTap={{ scale: 0.97 }}
               transition={pressSpring}
-              className="btn btn--primary"
+              className={`btn btn--primary ${sharpenIsStub ? 'btn--primary-stub' : ''}`}
               aria-label="Build Prompt"
             >
-              {isBusy ? `Stop ${generationState}` : 'Sharpen'}
+              {sharpenLabel}
               {!isBusy && canGenerate && (
                 <span className="kbd kbd--dark">
                   <Command size={10} strokeWidth={2.5} />
@@ -448,9 +466,9 @@ export function PromptComposer() {
           )}
         </div>
 
-        <p className={`ui-helper ${disabledReason ? 'is-visible' : ''}`}>
-          {disabledReason ?? '⌘↵ sharpen · esc cancel'}
-        </p>
+        {disabledReason && (
+          <p className="ui-helper is-visible">{disabledReason}</p>
+        )}
       </footer>
     </section>
   )

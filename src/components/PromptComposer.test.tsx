@@ -106,10 +106,11 @@ describe('PromptComposer', () => {
     const html = renderToStaticMarkup(<PromptComposer />)
 
     expect(html).toContain('Brief')
-    expect(html).toContain('Raw intent')
+    expect(html).toContain('Intent')
     expect(html).toContain('Context')
     expect(html).toContain('Advanced')
-    expect(html).toContain('Sharpen')
+    // CTA exists — exact label varies between "Sharpen" and "Add intent to sharpen"
+    expect(html.toLowerCase()).toContain('sharpen')
     expect(html).not.toContain('Must include')
     expect(html).not.toContain('Reference material')
   })
@@ -194,6 +195,7 @@ describe('PromptComposer', () => {
 
     const html = renderToStaticMarkup(<PromptComposer />)
 
-    expect(html).toContain('Add your raw intent to enable building.')
+    // Hint is now folded into the CTA label so the button itself reads as the affordance.
+    expect(html).toContain('Add intent to sharpen')
   })
 })

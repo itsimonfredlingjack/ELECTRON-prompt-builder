@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useComposerActions } from '@/contexts/composerContext'
 import { useGenerationControls, useGenerationState } from '@/contexts/generationContext'
 import { useOutputActions, useOutputMeta } from '@/contexts/outputContext'
 import { useRuntimeState } from '@/contexts/runtimeContext'
@@ -7,9 +8,7 @@ import { writeClipboardText } from '@/lib/clipboard'
 import {
   AlertTriangle,
   Check,
-  Command,
   Copy,
-  CornerDownLeft,
   PenTool,
   RotateCcw,
   Trash2,
@@ -19,6 +18,29 @@ import { defaultSpring, offlineSpring, pressSpring } from '@/lib/springs'
 
 type CopyState = 'idle' | 'copied' | 'error'
 type StatusKey = 'streaming' | 'sharpened' | 'offline' | 'attention' | 'idle'
+
+/**
+ * Empty-state seeds: short, opinionated example briefs that drop directly into
+ * the intent box. The point is to remove blank-page friction, not to be
+ * comprehensive — three feels fine, more would look like a template gallery.
+ */
+const EMPTY_STATE_SEEDS: Array<{ id: string; label: string; intent: string }> = [
+  {
+    id: 'readme',
+    label: 'README intro',
+    intent: 'Write the opening section of a README for a small open-source CLI. Tool is for batch-renaming files via regex. Keep it useful, not promotional.',
+  },
+  {
+    id: 'refactor',
+    label: 'Refactor brief',
+    intent: 'Rewrite this prompt as a focused refactor brief: take a legacy React class component and migrate it to a typed function component with hooks, no behavior changes.',
+  },
+  {
+    id: 'landing',
+    label: 'Landing hero',
+    intent: 'Draft a hero section for the landing page of a privacy-first note-taking app. No AI hype, no marketing gradients. Calm, technical, confident.',
+  },
+]
 
 export function ResultPanel() {
   const {
@@ -32,6 +54,7 @@ export function ResultPanel() {
     sourceValue,
   } = useOutputMeta()
   const { clearOutput, setDraftText } = useOutputActions()
+  const { setInputText } = useComposerActions()
   const { startGeneration, canGenerate } = useGenerationControls()
   const { isBusy, isStreaming, generationState, error } = useGenerationState()
   const { selectedModelId, selectedModelReady, runtimeSnapshot } = useRuntimeState()
@@ -81,13 +104,17 @@ export function ResultPanel() {
           ? 'attention'
           : 'idle'
 
+  const draftIsActive = hasDraft || isStreaming
+  const showFooterActions = hasDraft || isStreaming || !!error
+
   return (
     <section className="draft" aria-label="Generated prompt draft">
       <header className="draft-head">
-        <span className="draft-title">Prompt draft</span>
-        <StatusBadge statusKey={statusKey} />
+        <span className={`draft-title ${draftIsActive ? 'is-active' : 'is-quiet'}`}>Prompt draft</span>
+        {/* Hide the badge entirely while idle — "idle" pill says nothing useful. */}
+        {statusKey !== 'idle' && <StatusBadge statusKey={statusKey} />}
 
-        {(hasDraft || isStreaming) && (
+        {draftIsActive && (
           <div className="draft-stats">
             <div className="draft-stat"><span className="n">{wordCount}</span><span className="l">words</span></div>
             <div className="draft-stat"><span className="n">{lineCount}</span><span className="l">lines</span></div>
@@ -134,37 +161,43 @@ export function ResultPanel() {
           />
         </div>
       ) : (
-        <DraftHint error={error} />
+        <DraftHint error={error} onSeed={(intent) => setInputText(intent)} />
       )}
 
       <footer className="draft-foot">
         <div className="draft-local">
           <span className={`dot ${selectedModelReady ? '' : 'dot--idle'}`} />
           <span>{isOffline ? 'local · offline' : `local · ${runtimeMeta}`}</span>
-          <span className="draft-local-sep">·</span>
-          <span>{generationState}</span>
+          {draftIsActive && (
+            <>
+              <span className="draft-local-sep">·</span>
+              <span>{generationState}</span>
+            </>
+          )}
         </div>
-        <div className="draft-actions">
-          <ActionButton
-            onClick={() => void startGeneration()}
-            disabled={isBusy || !canGenerate}
-            icon={<RotateCcw size={12} strokeWidth={2.25} />}
-          >
-            Regenerate
-          </ActionButton>
-          <ActionButton
-            onClick={clearOutput}
-            disabled={!hasOutput && !isStreaming}
-            icon={<Trash2 size={12} strokeWidth={2.25} />}
-          >
-            Clear
-          </ActionButton>
-          <CopyButton
-            onClick={() => void handleCopy()}
-            disabled={!hasDraft || isStreaming}
-            copyState={copyState}
-          />
-        </div>
+        {showFooterActions && (
+          <div className="draft-actions">
+            <ActionButton
+              onClick={() => void startGeneration()}
+              disabled={isBusy || !canGenerate}
+              icon={<RotateCcw size={12} strokeWidth={2.25} />}
+            >
+              Regenerate
+            </ActionButton>
+            <ActionButton
+              onClick={clearOutput}
+              disabled={!hasOutput && !isStreaming}
+              icon={<Trash2 size={12} strokeWidth={2.25} />}
+            >
+              Clear
+            </ActionButton>
+            <CopyButton
+              onClick={() => void handleCopy()}
+              disabled={!hasDraft || isStreaming}
+              copyState={copyState}
+            />
+          </div>
+        )}
       </footer>
     </section>
   )
@@ -200,9 +233,10 @@ const STATUS_CONFIG: Record<StatusKey, { label: string; className: string; dot: 
 
 interface DraftHintProps {
   error: string | null
+  onSeed: (intent: string) => void
 }
 
-function DraftHint({ error }: DraftHintProps) {
+function DraftHint({ error, onSeed }: DraftHintProps) {
   if (error) {
     return (
       <motion.div
@@ -212,7 +246,7 @@ function DraftHint({ error }: DraftHintProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={defaultSpring}
       >
-        <span className="empty-glyph"><AlertTriangle size={26} strokeWidth={1.7} /></span>
+        <span className="empty-glyph"><AlertTriangle size={24} strokeWidth={1.7} /></span>
         <div className="empty-title">Generation needs attention.</div>
         <div className="empty-sub">{error}</div>
       </motion.div>
@@ -225,13 +259,27 @@ function DraftHint({ error }: DraftHintProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={defaultSpring}
     >
-      <span className="empty-glyph"><PenTool size={24} strokeWidth={1.6} /></span>
-      <div className="empty-title">Sharpen a brief to begin.</div>
-      <div className="empty-sub">Write a brief on the left, then sharpen. Nothing leaves this machine.</div>
-      <div className="empty-row">
-        <span className="kbd kbd--accent"><Command size={11} strokeWidth={2.25} /></span>
-        <span className="kbd kbd--accent"><CornerDownLeft size={11} strokeWidth={2.25} /></span>
-        <span>sharpen</span>
+      <span className="empty-glyph"><PenTool size={22} strokeWidth={1.6} /></span>
+      <div className="empty-title">Write a brief, then sharpen.</div>
+      <div className="empty-sub">Or start from one of these:</div>
+      <div className="empty-seeds" role="list" aria-label="Example briefs">
+        {EMPTY_STATE_SEEDS.map((seed, index) => (
+          <motion.button
+            key={seed.id}
+            type="button"
+            role="listitem"
+            onClick={() => onSeed(seed.intent)}
+            whileTap={{ scale: 0.97 }}
+            transition={pressSpring}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            // Stagger so the seeds settle in left-to-right after the headline.
+            style={{ transitionDelay: `${0.06 + index * 0.04}s` }}
+            className="empty-seed"
+          >
+            {seed.label}
+          </motion.button>
+        ))}
       </div>
     </motion.div>
   )

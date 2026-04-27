@@ -20,9 +20,9 @@ const statusToneStyles: Record<StatusTone, { dot: string; text: string; ring: st
     pulse: 'animate-[sleepy-breathe_2.4s_ease-in-out_infinite]',
   },
   'is-ready': {
-    dot: 'bg-ink-100 shadow-[0_0_0_1px_rgba(31,32,35,0.18),0_0_4px_0_rgba(31,32,35,0.10)]',
+    dot: 'bg-ink-100 shadow-[0_0_0_1px_rgba(31,32,35,0.20),0_0_4px_0_rgba(31,32,35,0.12)]',
     text: 'text-ink-100',
-    ring: 'border-chrome-line-3 bg-surface-700',
+    ring: 'border-chrome-line-3 bg-surface-650',
     pulse: 'animate-[sleepy-breathe_5s_ease-in-out_infinite]',
   },
   'is-warming': {
@@ -108,13 +108,12 @@ export function TitleBar() {
         <span className="text-ink-100 font-display text-[14px] font-medium tracking-[-0.01em]">
           lazy prompter
         </span>
-        {showRuntimeMeta && (
+        {showRuntimeMeta && !selectorValue && (
           <>
             <span className="w-px h-3 flex-none bg-chrome-line" />
-            <span className="min-w-0 overflow-hidden text-ink-400 font-mono text-[11px] whitespace-nowrap text-ellipsis max-[980px]:hidden">{selectorValue || runtimeMeta}</span>
+            <span className="min-w-0 overflow-hidden text-ink-400 font-mono text-[11px] whitespace-nowrap text-ellipsis max-[980px]:hidden">{runtimeMeta}</span>
           </>
         )}
-        <span className="flex-none text-ink-400/70 min-w-0 overflow-hidden font-mono text-[11px] whitespace-nowrap text-ellipsis max-[980px]:hidden">local only</span>
       </div>
 
       <div className="min-w-0 flex items-center justify-end max-[820px]:justify-start max-[820px]:flex-wrap gap-2" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>

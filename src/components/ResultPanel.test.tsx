@@ -8,6 +8,7 @@ const useGenerationStateMock = vi.fn()
 const useGenerationControlsMock = vi.fn()
 const useRuntimeStateMock = vi.fn()
 const useRuntimeActionsMock = vi.fn()
+const useComposerActionsMock = vi.fn()
 
 vi.mock('@/contexts/generationContext', () => ({
   useGenerationState: () => useGenerationStateMock(),
@@ -17,6 +18,10 @@ vi.mock('@/contexts/generationContext', () => ({
 vi.mock('@/contexts/runtimeContext', () => ({
   useRuntimeState: () => useRuntimeStateMock(),
   useRuntimeActions: () => useRuntimeActionsMock(),
+}))
+
+vi.mock('@/contexts/composerContext', () => ({
+  useComposerActions: () => useComposerActionsMock(),
 }))
 
 import { ResultPanel } from '@/components/ResultPanel'
@@ -97,6 +102,9 @@ async function renderResultPanel({
   useRuntimeActionsMock.mockReturnValue({
     refreshRuntime,
   })
+  useComposerActionsMock.mockReturnValue({
+    setInputText: vi.fn(),
+  })
 
   const container = document.createElement('div')
   const root = createRoot(container)
@@ -137,9 +145,9 @@ describe('ResultPanel', () => {
       canGenerate: false,
     })
 
-    expect(container.textContent).toContain('Sharpen a brief to begin')
-    expect(container.textContent).toContain('Write a brief on the left, then sharpen.')
-    expect(container.textContent).toContain('sharpen')
+    expect(container.textContent).toContain('Write a brief, then sharpen')
+    expect(container.textContent).toContain('Or start from one of these')
+    expect(container.textContent).toContain('README intro')
 
     await act(async () => {
       root.unmount()
@@ -249,6 +257,9 @@ describe('ResultPanel', () => {
     })
     useRuntimeActionsMock.mockReturnValue({
       refreshRuntime: vi.fn().mockResolvedValue(undefined),
+    })
+    useComposerActionsMock.mockReturnValue({
+      setInputText: vi.fn(),
     })
 
     const container = document.createElement('div')
