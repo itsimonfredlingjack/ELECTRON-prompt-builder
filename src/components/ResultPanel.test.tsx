@@ -154,6 +154,62 @@ describe('ResultPanel', () => {
     })
   })
 
+  it('hides the status pill and footer actions when idle', async () => {
+    const { container, root } = await renderResultPanel({
+      value: '',
+      sourceValue: '',
+      isStreaming: false,
+      canGenerate: false,
+    })
+
+    // Idle state: no status pill should render at all
+    expect(container.querySelector('.draft-head .badge')).toBeNull()
+    expect(container.textContent).not.toContain('streaming')
+    expect(container.textContent).not.toContain('sharpened')
+    // Footer actions are also suppressed in idle to avoid three faded buttons
+    expect(container.querySelector('.draft-actions')).toBeNull()
+
+    await act(async () => {
+      root.unmount()
+    })
+  })
+
+  it('shows the streaming status pill and stream track while streaming', async () => {
+    const { container, root } = await renderResultPanel({
+      value: '',
+      sourceValue: 'turn this into a stricter prompt',
+      isStreaming: true,
+    })
+
+    const badge = container.querySelector('.draft-head .badge')
+    expect(badge).toBeTruthy()
+    expect(badge?.textContent).toContain('streaming')
+    expect(container.querySelector('.stream-track')).toBeTruthy()
+    // Footer actions render so the user can stop or copy a partial draft
+    expect(container.querySelector('.draft-actions')).toBeTruthy()
+
+    await act(async () => {
+      root.unmount()
+    })
+  })
+
+  it('shows the sharpened status pill once a draft exists and streaming has stopped', async () => {
+    const { container, root } = await renderResultPanel({
+      value: 'Write a stricter prompt for debugging a flaky React test.',
+      sourceValue: 'need a better prompt for a flaky react test',
+      isStreaming: false,
+    })
+
+    const badge = container.querySelector('.draft-head .badge')
+    expect(badge).toBeTruthy()
+    expect(badge?.textContent).toContain('sharpened')
+    expect(container.querySelector('.stream-track')).toBeNull()
+
+    await act(async () => {
+      root.unmount()
+    })
+  })
+
   it('shows local Ollama recovery inside the draft pane when offline', async () => {
     const { container, root } = await renderResultPanel({
       value: '',

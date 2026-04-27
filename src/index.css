@@ -989,10 +989,12 @@
 .empty {
   padding: 32px 40px 56px;
   gap: 14px;
-  /* Settle ~36% from the top so the seed chips don't end up in the bottom
-   * third of the panel where the eye doesn't expect actionable content. */
+  /* Settle the empty stack roughly in the upper third of the panel so the
+   * seed chips read as actionable, not bottom-dwelling. clamp() keeps the
+   * offset bounded across viewports — 18%-of-panel was unstable on short
+   * windows and on the 720px responsive collapse where the panel shrinks. */
   justify-content: flex-start;
-  padding-top: 18%;
+  padding-top: clamp(56px, 14vh, 120px);
 }
 
 .empty-glyph {

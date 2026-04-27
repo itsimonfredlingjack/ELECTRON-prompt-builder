@@ -270,11 +270,11 @@ function DraftHint({ error, onSeed }: DraftHintProps) {
             role="listitem"
             onClick={() => onSeed(seed.intent)}
             whileTap={{ scale: 0.97 }}
-            transition={pressSpring}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            // Stagger so the seeds settle in left-to-right after the headline.
-            style={{ transitionDelay: `${0.06 + index * 0.04}s` }}
+            // Stagger via framer-motion's transition.delay — CSS transitionDelay
+            // would not apply, since motion drives the animation via WAAPI.
+            transition={{ ...defaultSpring, delay: 0.06 + index * 0.04 }}
             className="empty-seed"
           >
             {seed.label}
